@@ -5,7 +5,6 @@ import { track as analytics } from "@vercel/analytics";
 import { PLAYLISTS, type Track, type Playlist } from "@/lib/tracks";
 import { loadYT } from "@/lib/loadYT";
 import { PrevIcon, NextIcon, PlayIcon, PauseIcon, QueueIcon } from "./icons";
-import { RequestModal } from "./RequestModal";
 
 // ===========================================================================
 // Helpers
@@ -349,7 +348,6 @@ export function Player() {
   const [duration, setDuration] = useState(0);
   const [layout, setLayout] = useState<"desktop" | "mobile">("desktop");
   const [showQueue, setShowQueue] = useState(false);
-  const [showRequest, setShowRequest] = useState(false);
   const [playlists, setPlaylists] = useState(PLAYLISTS);
 
   // merge in any admin-approved requests from Redis on mount
@@ -738,15 +736,6 @@ export function Player() {
           playback.
         </p>
       )}
-      <div className="mt-2 flex justify-center">
-        <button
-          onClick={() => setShowRequest(true)}
-          className="text-[11px] text-white/35 transition hover:text-white/70"
-        >
-          🎵 Request a song
-        </button>
-      </div>
-      <RequestModal open={showRequest} onClose={() => setShowRequest(false)} />
     </div>
   );
 }
