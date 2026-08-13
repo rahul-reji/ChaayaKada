@@ -77,6 +77,46 @@ function Vinyl({ playing, size }: { playing: boolean; size: number }) {
   );
 }
 
+// Shows YouTube thumbnail as a spinning picture-disc; falls back to Vinyl on image error.
+function AlbumArt({ videoId, playing, size }: { videoId: string; playing: boolean; size: number }) {
+  const [errored, setErrored] = useState(false);
+  if (errored) return <Vinyl playing={playing} size={size} />;
+  return (
+    <div
+      className="relative shrink-0 overflow-hidden rounded-full"
+      style={{
+        width: size,
+        height: size,
+        animation: "spin 8s linear infinite",
+        animationPlayState: playing ? "running" : "paused",
+        boxShadow: "inset 0 0 0 1px rgba(255,255,255,0.08)",
+      }}
+    >
+      <img
+        src={`https://img.youtube.com/vi/${videoId}/hqdefault.jpg`}
+        alt=""
+        aria-hidden
+        draggable={false}
+        onError={() => setErrored(true)}
+        className="absolute inset-0 h-full w-full object-cover"
+      />
+      {/* subtle groove rings */}
+      <div
+        className="pointer-events-none absolute inset-0 rounded-full"
+        style={{
+          background:
+            "repeating-radial-gradient(circle at 50% 50%, transparent 0 46%, rgba(0,0,0,0.2) 46% 47%, transparent 47% 52%)",
+        }}
+      />
+      {/* centre hole */}
+      <div
+        className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full bg-[#0d0c0a]"
+        style={{ width: size * 0.14, height: size * 0.14 }}
+      />
+    </div>
+  );
+}
+
 // The artwork slot. `hostRef` is an imperative-only container: <Player/>
 // appends the YouTube host (which the API swaps for an <iframe>) into it. React
 // never renders children into hostRef, so progress-tick re-renders can't touch
@@ -87,12 +127,14 @@ function Artwork({
   playing,
   vinylSize,
   rounded,
+  videoId,
 }: {
   hostRef: React.RefObject<HTMLDivElement | null>;
   hasVideo: boolean;
   playing: boolean;
   vinylSize: number;
   rounded: string;
+  videoId: string;
 }) {
   return (
     <div
@@ -106,7 +148,11 @@ function Artwork({
         style={{ opacity: 0, pointerEvents: "none" }}
       />
       <div className="absolute inset-0 grid place-items-center">
-        <Vinyl playing={playing} size={vinylSize} />
+        {videoId ? (
+          <AlbumArt key={videoId} videoId={videoId} playing={playing} size={vinylSize} />
+        ) : (
+          <Vinyl playing={playing} size={vinylSize} />
+        )}
       </div>
     </div>
   );
@@ -643,7 +689,8 @@ export function Player() {
           hasVideo={hasVideo && layout === "desktop"}
           playing={isPlaying}
           vinylSize={80}
-          rounded={hasVideo ? "rounded-xl" : "rounded-full"}
+          rounded="rounded-full"
+          videoId={current.videoId}
         />
 
         <div className="flex min-w-0 flex-1 flex-col gap-1.5">
@@ -684,7 +731,8 @@ export function Player() {
             hasVideo={hasVideo && layout === "mobile"}
             playing={isPlaying}
             vinylSize={64}
-            rounded={hasVideo ? "rounded-2xl" : "rounded-full"}
+            rounded="rounded-full"
+            videoId={current.videoId}
           />
           <TitleBlock title={current.title} artist={current.artist} />
         </div>
