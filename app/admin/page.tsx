@@ -1,0 +1,245 @@
+"use client";
+
+import { useState, useCallback } from "react";
+import { PLAYLISTS } from "@/lib/tracks";
+
+type SongRequest = {
+  id: string;
+  title: string;
+  artist: string;
+  note: string;
+  timestamp: number;
+  status: "pending" | "approved" | "rejected";
+  videoId?: string;
+  playlistId?: string;
+};
+
+type ApproveState = { videoId: string; playlistId: string };
+
+export default function AdminPage() {
+  const [key, setKey] = useState("");
+  const [authed, setAuthed] = useState(false);
+  const [requests, setRequests] = useState<SongRequest[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [loginError, setLoginError] = useState("");
+  const [approveFields, setApproveFields] = useState<Record<string, ApproveState>>({});
+  const [actionStatus, setActionStatus] = useState<Record<string, string>>({});
+
+  const load = useCallback(async (adminKey: string) => {
+    setLoading(true);
+    setLoginError("");
+    const res = await fetch("/api/admin/requests", {
+      headers: { "x-admin-key": adminKey },
+    });
+    if (res.status === 401) {
+      setLoginError("Wrong key");
+      setAuthed(false);
+      setLoading(false);
+      return;
+    }
+    setRequests(await res.json());
+    setAuthed(true);
+    setLoading(false);
+  }, []);
+
+  async function autoFill(id: string, title: string, artist: string) {
+    setActionStatus((s) => ({ ...s, [id]: "Searching YouTube…" }));
+    const res = await fetch("/api/admin/fetch-video-id", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "x-admin-key": key },
+      body: JSON.stringify({ title, artist }),
+    }).catch(() => null);
+    if (!res?.ok) {
+      setActionStatus((s) => ({ ...s, [id]: "✗ Search failed" }));
+      return;
+    }
+    const { videoId } = await res.json();
+    if (videoId) {
+      setApproveFields((s) => ({
+        ...s,
+        [id]: { ...(s[id] ?? { videoId: "", playlistId: "" }), videoId },
+      }));
+      setActionStatus((s) => ({ ...s, [id]: "✓ Found — verify before approving" }));
+    } else {
+      setActionStatus((s) => ({ ...s, [id]: "✗ Not found on YouTube" }));
+    }
+  }
+
+  async function doAction(id: string, act: "approve" | "reject") {
+    const f = approveFields[id] ?? { videoId: "", playlistId: "" };
+    if (act === "approve" && (!f.videoId || !f.playlistId)) {
+      setActionStatus((s) => ({ ...s, [id]: "Fill in video ID and playlist first" }));
+      return;
+    }
+    setActionStatus((s) => ({ ...s, [id]: "…" }));
+    const res = await fetch("/api/admin/requests", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json", "x-admin-key": key },
+      body: JSON.stringify({ id, action: act, ...f }),
+    }).catch(() => null);
+    if (res?.ok) {
+      setActionStatus((s) => ({
+        ...s,
+        [id]: act === "approve" ? "✓ Added to playlist!" : "✗ Rejected",
+      }));
+      load(key);
+    } else {
+      const err = await res?.json().catch(() => null);
+      setActionStatus((s) => ({ ...s, [id]: err?.error ?? "Failed" }));
+    }
+  }
+
+  const setField = (id: string, patch: Partial<ApproveState>) =>
+    setApproveFields((s) => ({ ...s, [id]: { ...(s[id] ?? { videoId: "", playlistId: "" }), ...patch } }));
+
+  if (!authed) {
+    return (
+      <main className="flex min-h-dvh items-center justify-center bg-[#0d0c0a] p-6">
+        <form
+          onSubmit={(e) => { e.preventDefault(); load(key); }}
+          className="w-full max-w-xs space-y-4"
+        >
+          <h1 className="text-xl font-semibold text-white">Chayakada Admin</h1>
+          <input
+            type="password"
+            value={key}
+            onChange={(e) => setKey(e.target.value)}
+            placeholder="Admin key"
+            autoComplete="current-password"
+            className="w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2.5 text-sm text-white placeholder-white/30 outline-none"
+          />
+          {loginError && <p className="text-sm text-red-400">{loginError}</p>}
+          <button
+            type="submit"
+            disabled={loading}
+            className="w-full rounded-xl border border-amber-500/30 bg-amber-500/15 py-2.5 text-sm font-medium text-amber-300 disabled:opacity-50"
+          >
+            {loading ? "Checking…" : "Enter"}
+          </button>
+        </form>
+      </main>
+    );
+  }
+
+  const pending = requests.filter((r) => r.status === "pending");
+  const done = requests.filter((r) => r.status !== "pending");
+
+  return (
+    <main className="min-h-dvh bg-[#0d0c0a] p-6 text-white">
+      <div className="mx-auto max-w-2xl">
+        <div className="mb-6 flex items-center justify-between">
+          <h1 className="text-xl font-semibold">
+            Song Requests{" "}
+            <span className="text-base font-normal text-white/40">
+              ({pending.length} pending)
+            </span>
+          </h1>
+          <button
+            onClick={() => load(key)}
+            className="text-sm text-white/40 transition hover:text-white"
+          >
+            ↻ Refresh
+          </button>
+        </div>
+
+        {loading && <p className="text-sm text-white/50">Loading…</p>}
+
+        {!loading && pending.length === 0 && (
+          <p className="rounded-xl border border-white/10 bg-white/5 p-4 text-sm text-white/50">
+            No pending requests.
+          </p>
+        )}
+
+        <div className="space-y-3">
+          {pending.map((req) => {
+            const f = approveFields[req.id] ?? { videoId: "", playlistId: "" };
+            return (
+              <div key={req.id} className="rounded-xl border border-white/10 bg-white/5 p-4">
+                <p className="font-medium">{req.title}</p>
+                {req.artist && <p className="text-sm text-white/60">{req.artist}</p>}
+                {req.note && (
+                  <p className="mt-1 text-xs italic text-white/40">"{req.note}"</p>
+                )}
+                <p className="mt-1 text-[11px] text-white/25">
+                  {new Date(req.timestamp).toLocaleString()}
+                </p>
+
+                <div className="mt-3 flex flex-col gap-2">
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      value={f.videoId}
+                      onChange={(e) => setField(req.id, { videoId: e.target.value })}
+                      placeholder="YouTube Video ID or URL"
+                      className="flex-1 rounded-lg border border-white/10 bg-white/5 px-3 py-1.5 text-xs text-white placeholder-white/25 outline-none"
+                    />
+                    <button
+                      onClick={() => autoFill(req.id, req.title, req.artist)}
+                      title="Auto-fill using YouTube search"
+                      className="shrink-0 rounded-lg border border-white/10 bg-white/5 px-3 py-1.5 text-xs text-amber-400 transition hover:bg-white/10"
+                    >
+                      🔍 Auto-fill
+                    </button>
+                  </div>
+                  <select
+                    value={f.playlistId}
+                    onChange={(e) => setField(req.id, { playlistId: e.target.value })}
+                    className="w-full rounded-lg border border-white/10 bg-[#1a1412] px-3 py-1.5 text-xs text-white outline-none"
+                  >
+                    <option value="">— Select playlist —</option>
+                    {PLAYLISTS.map((pl) => (
+                      <option key={pl.id} value={pl.id}>{pl.name}</option>
+                    ))}
+                  </select>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => doAction(req.id, "approve")}
+                      className="flex-1 rounded-lg border border-green-500/25 bg-green-500/15 py-1.5 text-xs font-medium text-green-400 transition hover:bg-green-500/25"
+                    >
+                      Approve
+                    </button>
+                    <button
+                      onClick={() => doAction(req.id, "reject")}
+                      className="flex-1 rounded-lg border border-red-500/25 bg-red-500/15 py-1.5 text-xs font-medium text-red-400 transition hover:bg-red-500/25"
+                    >
+                      Reject
+                    </button>
+                  </div>
+                  {actionStatus[req.id] && (
+                    <p className="text-center text-xs text-white/50">{actionStatus[req.id]}</p>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
+        {done.length > 0 && (
+          <>
+            <h2 className="mb-3 mt-8 text-[11px] font-semibold uppercase tracking-widest text-white/30">
+              Processed
+            </h2>
+            <div className="space-y-2">
+              {done.map((req) => (
+                <div
+                  key={req.id}
+                  className="flex items-center justify-between rounded-xl border border-white/10 bg-white/5 px-4 py-3"
+                >
+                  <div>
+                    <p className="text-sm font-medium">{req.title}</p>
+                    {req.artist && <p className="text-xs text-white/50">{req.artist}</p>}
+                  </div>
+                  <span
+                    className={`text-xs font-medium ${req.status === "approved" ? "text-green-400" : "text-red-400"}`}
+                  >
+                    {req.status === "approved" ? "✓ Approved" : "✗ Rejected"}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </>
+        )}
+      </div>
+    </main>
+  );
+}

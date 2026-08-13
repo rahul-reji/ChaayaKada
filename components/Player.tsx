@@ -5,6 +5,7 @@ import { track as analytics } from "@vercel/analytics";
 import { PLAYLISTS, type Track, type Playlist } from "@/lib/tracks";
 import { loadYT } from "@/lib/loadYT";
 import { PrevIcon, NextIcon, PlayIcon, PauseIcon, QueueIcon } from "./icons";
+import { RequestModal } from "./RequestModal";
 
 // ===========================================================================
 // Helpers
@@ -348,8 +349,25 @@ export function Player() {
   const [duration, setDuration] = useState(0);
   const [layout, setLayout] = useState<"desktop" | "mobile">("desktop");
   const [showQueue, setShowQueue] = useState(false);
+  const [showRequest, setShowRequest] = useState(false);
+  const [playlists, setPlaylists] = useState(PLAYLISTS);
 
-  const playlist = PLAYLISTS[playlistIndex];
+  // merge in any admin-approved requests from Redis on mount
+  useEffect(() => {
+    fetch("/api/extra-tracks")
+      .then((r) => (r.ok ? r.json() : {}))
+      .then((extra: Record<string, Track[]>) => {
+        setPlaylists(
+          PLAYLISTS.map((pl) => ({
+            ...pl,
+            tracks: [...pl.tracks, ...(extra[pl.id] ?? [])],
+          }))
+        );
+      })
+      .catch(() => {});
+  }, []);
+
+  const playlist = playlists[playlistIndex];
   const tracks = playlist.tracks;
   const current: Track = tracks[trackIndex];
   const hasVideo = Boolean(current.videoId);
@@ -553,7 +571,7 @@ export function Player() {
     (i: number) => {
       if (i === playlistIndex) return;
       autoplayRef.current = true;
-      const pl = PLAYLISTS[i];
+      const pl = playlists[i];
       const playable = pl.tracks.map((t, idx) => (t.videoId ? idx : -1)).filter((idx) => idx !== -1);
       const randomIdx = playable.length
         ? playable[Math.floor(Math.random() * playable.length)]
@@ -561,7 +579,7 @@ export function Player() {
       setPlaylistIndex(i);
       setTrackIndex(randomIdx);
     },
-    [playlistIndex]
+    [playlistIndex, playlists]
   );
 
   const selectTrack = useCallback(
@@ -614,7 +632,7 @@ export function Player() {
     <div className="pointer-events-auto w-full max-w-xl">
       <div className="mb-3 flex justify-center sm:justify-start">
         <PlaylistTabs
-          playlists={PLAYLISTS}
+          playlists={playlists}
           activeIndex={playlistIndex}
           onSelect={selectPlaylist}
         />
@@ -706,7 +724,7 @@ export function Player() {
 
       {showQueue && (
         <QueuePanel
-          playlists={PLAYLISTS}
+          playlists={playlists}
           currentPlaylistIndex={playlistIndex}
           currentTrackIndex={trackIndex}
           onSelect={selectTrack}
@@ -720,6 +738,15 @@ export function Player() {
           playback.
         </p>
       )}
+      <div className="mt-2 flex justify-center">
+        <button
+          onClick={() => setShowRequest(true)}
+          className="text-[11px] text-white/35 transition hover:text-white/70"
+        >
+          🎵 Request a song
+        </button>
+      </div>
+      <RequestModal open={showRequest} onClose={() => setShowRequest(false)} />
     </div>
   );
 }
