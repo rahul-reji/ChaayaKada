@@ -3,6 +3,7 @@ import logo from "@/public/bg/logo.png";
 import { Clock } from "@/components/Clock";
 import { ListenerCount } from "@/components/ListenerCount";
 import { Player } from "@/components/Player";
+import { ShareButton } from "@/components/ShareButton";
 
 // Inline feTurbulence grain as a data-URI (mix-blend overlay, opacity 0.3).
 const GRAIN =
@@ -50,15 +51,7 @@ export default function Home() {
         style={{ top: insetTop, right: insetRight }}
         aria-label="Social links"
       >
-        <a
-          href="#"
-          aria-label="Share"
-          className="text-white/75 transition hover:text-white"
-        >
-          <svg viewBox="0 0 24 24" className="h-5 w-5" fill="currentColor" aria-hidden>
-            <path d="M18 8a3 3 0 1 0-2.83-4H15a3 3 0 0 0 .13 1.02l-6.1 3.56a3 3 0 1 0 0 4.84l6.1 3.56A3 3 0 1 0 18 16a2.98 2.98 0 0 0-1.98.75l-6.1-3.56a3.02 3.02 0 0 0 0-2.38l6.1-3.56A2.98 2.98 0 0 0 18 8Z" />
-          </svg>
-        </a>
+        <ShareButton />
       </nav>
 
       {/* Logo on the scene */}
