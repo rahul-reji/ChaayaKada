@@ -34,7 +34,7 @@ export function ListenerCount() {
     };
 
     heartbeat();
-    const id = setInterval(heartbeat, 30_000);
+    const id = setInterval(heartbeat, 10_000);
     return () => clearInterval(id);
   }, []);
 
