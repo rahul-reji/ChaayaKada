@@ -1,0 +1,104 @@
+@import "tailwindcss";
+
+/* --------------------------------------------------------------------------
+   Design tokens (Tailwind v4 — no tailwind.config).
+   Exposes utilities like `text-accent`, `bg-accent`, `shadow-accent`, etc.
+   -------------------------------------------------------------------------- */
+@theme {
+  --color-accent: #e0b46a; /* warm brass / chai-gold */
+  --color-accent-soft: #f0d9a8;
+  --color-accent-deep: #b8823a;
+
+  --font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto,
+    "Helvetica Neue", Arial, sans-serif;
+
+  --animate-spin-vinyl: spin 8s linear infinite;
+}
+
+/* --------------------------------------------------------------------------
+   Base
+   -------------------------------------------------------------------------- */
+html,
+body {
+  height: 100%;
+}
+
+body {
+  color: #fff;
+  background: #0b0b0d;
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* --------------------------------------------------------------------------
+   Hero background — the wide scene by default, the separately-composed tall
+   scene in portrait. This lives in CSS (not markup) so the swap is a pure
+   media query with no JS and no layout shift.
+   -------------------------------------------------------------------------- */
+.hero-bg {
+  background-image: url("/bg/scene-wide.png");
+}
+
+@media (orientation: portrait) {
+  .hero-bg {
+    background-image: url("/bg/scene-tall.png");
+  }
+}
+
+/* --------------------------------------------------------------------------
+   Keyframes
+   -------------------------------------------------------------------------- */
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes blink {
+  50% {
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hero-bg,
+  * {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+  }
+}
+
+/* --------------------------------------------------------------------------
+   Range input reset for the seek bar (we render our own rail + knob).
+   -------------------------------------------------------------------------- */
+input[type="range"].seek {
+  -webkit-appearance: none;
+  appearance: none;
+  background: transparent;
+  cursor: pointer;
+}
+input[type="range"].seek::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 0;
+  height: 0;
+}
+input[type="range"].seek::-moz-range-thumb {
+  width: 0;
+  height: 0;
+  border: 0;
+}
+
+/* --------------------------------------------------------------------------
+   YouTube host slot — the API replaces our host div with an <iframe>; make it
+   fill the 16:9 slot rather than adopt the default 640x390. This is how we keep
+   the player VISIBLE and interactive (skip button reachable) instead of hiding
+   it in a 1px / opacity-0 box.
+   -------------------------------------------------------------------------- */
+.yt-slot iframe {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border: 0;
+}
