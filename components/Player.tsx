@@ -93,7 +93,7 @@ function AlbumArt({ videoId, playing, size }: { videoId: string; playing: boolea
       }}
     >
       <img
-        src={`https://img.youtube.com/vi/${videoId}/hqdefault.jpg`}
+        src={`https://img.youtube.com/vi/${videoId}/mqdefault.jpg`}
         alt=""
         aria-hidden
         draggable={false}

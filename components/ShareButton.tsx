@@ -31,12 +31,12 @@ export function ShareButton() {
       <button
         onClick={() => setOpen(true)}
         aria-label="Share"
-        className="flex items-center gap-1.5 rounded-full border border-white/15 bg-black/50 px-3.5 py-1.5 text-xs font-medium text-white backdrop-blur-md transition hover:bg-black/70 cursor-pointer"
+        className="flex items-center gap-1.5 rounded-full border border-white/15 bg-black/50 p-2.5 text-xs font-medium text-white backdrop-blur-md transition hover:bg-black/70 cursor-pointer sm:px-3.5 sm:py-1.5"
       >
         <svg viewBox="0 0 24 24" className="h-3.5 w-3.5 shrink-0" fill="currentColor" aria-hidden>
           <path d="M18 8a3 3 0 1 0-2.83-4H15a3 3 0 0 0 .13 1.02l-6.1 3.56a3 3 0 1 0 0 4.84l6.1 3.56A3 3 0 1 0 18 16a2.98 2.98 0 0 0-1.98.75l-6.1-3.56a3.02 3.02 0 0 0 0-2.38l6.1-3.56A2.98 2.98 0 0 0 18 8Z" />
         </svg>
-        Share
+        <span className="hidden sm:inline">Share</span>
       </button>
 
       {open && (
