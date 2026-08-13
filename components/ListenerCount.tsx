@@ -2,21 +2,39 @@
 
 import { useEffect, useState } from "react";
 
-// A decorative ambient "listeners" figure that gently drifts. Rendered only
-// after mount so the server and client markup never disagree (no hydration
-// mismatch from a random seed).
+function getSessionId(): string {
+  let id = sessionStorage.getItem("ck_sid");
+  if (!id) {
+    id = crypto.randomUUID();
+    sessionStorage.setItem("ck_sid", id);
+  }
+  return id;
+}
+
 export function ListenerCount() {
   const [count, setCount] = useState<number | null>(null);
 
   useEffect(() => {
-    setCount(120 + Math.floor(Math.random() * 60));
-    const id = setInterval(() => {
-      setCount((c) => {
-        const base = c ?? 140;
-        const next = base + (Math.floor(Math.random() * 7) - 3);
-        return Math.max(80, Math.min(240, next));
-      });
-    }, 4000);
+    const sessionId = getSessionId();
+
+    const heartbeat = async () => {
+      try {
+        const res = await fetch("/api/presence", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ sessionId }),
+        });
+        if (res.ok) {
+          const data = await res.json();
+          setCount(data.count);
+        }
+      } catch {
+        // keep showing last known count on network error
+      }
+    };
+
+    heartbeat();
+    const id = setInterval(heartbeat, 30_000);
     return () => clearInterval(id);
   }, []);
 
