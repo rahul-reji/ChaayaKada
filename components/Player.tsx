@@ -411,6 +411,18 @@ export function Player() {
       .catch(() => {});
   }, []);
 
+  // randomize after hydration to avoid SSR mismatch
+  useEffect(() => {
+    const all: { pi: number; ti: number }[] = [];
+    PLAYLISTS.forEach((pl, pi) =>
+      pl.tracks.forEach((t, ti) => { if (t.videoId) all.push({ pi, ti }); })
+    );
+    if (!all.length) return;
+    const { pi, ti } = all[Math.floor(Math.random() * all.length)];
+    setPlaylistIndex(pi);
+    setTrackIndex(ti);
+  }, []);
+
   const playlist = playlists[playlistIndex];
   const tracks = playlist.tracks;
   const current: Track = tracks[trackIndex];

@@ -5,6 +5,7 @@ import { ListenerCount } from "@/components/ListenerCount";
 import { Player } from "@/components/Player";
 import { ShareButton } from "@/components/ShareButton";
 import { RequestButton } from "@/components/RequestButton";
+import { InstallButton } from "@/components/InstallButton";
 
 // Inline feTurbulence grain as a data-URI (mix-blend overlay, opacity 0.3).
 const GRAIN =
@@ -52,6 +53,7 @@ export default function Home() {
         style={{ top: insetTop, right: insetRight }}
         aria-label="Social links"
       >
+        <InstallButton />
         <RequestButton />
         <ShareButton />
       </nav>
