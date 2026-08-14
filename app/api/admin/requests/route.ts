@@ -90,6 +90,10 @@ export async function PATCH(req: Request) {
       return NextResponse.json({ error: "no playlistId on this request" }, { status: 400 });
     const newTitle = (body.title as string)?.trim() || request.title;
     const newArtist = (body.artist as string)?.trim() ?? "";
+    const rawVid = (body.videoId as string)?.trim();
+    const newVideoId = rawVid
+      ? rawVid.replace(/.*[?&]v=([^&]+).*/, "$1").replace(/.*youtu\.be\/([^?]+).*/, "$1")
+      : request.videoId;
 
     const items: string[] = await redis.lrange(`ck:extra:${request.playlistId}`, 0, -1);
     const trackId = `req-${id}`;
@@ -98,11 +102,11 @@ export async function PATCH(req: Request) {
       return t.id === trackId;
     });
 
-    const updatedRequest = { ...request, title: newTitle, artist: newArtist };
+    const updatedRequest = { ...request, title: newTitle, artist: newArtist, videoId: newVideoId };
     const pipe = redis.pipeline().set(`ck:req:${id}`, JSON.stringify(updatedRequest));
     if (idx !== -1) {
       const existing = typeof items[idx] === "string" ? JSON.parse(items[idx]) : items[idx];
-      pipe.lset(`ck:extra:${request.playlistId}`, idx, JSON.stringify({ ...existing, title: newTitle, artist: newArtist }));
+      pipe.lset(`ck:extra:${request.playlistId}`, idx, JSON.stringify({ ...existing, title: newTitle, artist: newArtist, videoId: newVideoId }));
     }
     await pipe.exec();
     return NextResponse.json({ ok: true });
