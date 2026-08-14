@@ -678,6 +678,43 @@ export function Player() {
     };
   });
 
+  // Media Session: register prev/next/play/pause for notification bar controls
+  useEffect(() => {
+    if (!("mediaSession" in navigator)) return;
+    navigator.mediaSession.setActionHandler("play", () => ytRef.current?.playVideo());
+    navigator.mediaSession.setActionHandler("pause", () => ytRef.current?.pauseVideo());
+    navigator.mediaSession.setActionHandler("previoustrack", () => step(-1));
+    navigator.mediaSession.setActionHandler("nexttrack", () => step(1));
+  }, [step]);
+
+  // Media Session: update track info shown on lock screen / notification
+  useEffect(() => {
+    if (!("mediaSession" in navigator)) return;
+    navigator.mediaSession.metadata = new MediaMetadata({
+      title: current.title,
+      artist: current.artist,
+      album: "Chayakada",
+      artwork: current.videoId
+        ? [{ src: `https://img.youtube.com/vi/${current.videoId}/mqdefault.jpg`, sizes: "320x180", type: "image/jpeg" }]
+        : [],
+    });
+  }, [current.videoId, current.title, current.artist]);
+
+  useEffect(() => {
+    if (!("mediaSession" in navigator)) return;
+    navigator.mediaSession.playbackState = isPlaying ? "playing" : "paused";
+  }, [isPlaying]);
+
+  // If the YT iframe auto-paused when the app was backgrounded, resume on return
+  useEffect(() => {
+    const onVisible = () => {
+      if (document.visibilityState !== "visible" || !restoreRef.current.wasPlaying) return;
+      try { ytRef.current?.playVideo(); } catch { /* noop */ }
+    };
+    document.addEventListener("visibilitychange", onVisible);
+    return () => document.removeEventListener("visibilitychange", onVisible);
+  }, []);
+
   const fraction = duration > 0 ? elapsed / duration : 0;
 
   // =========================================================================
