@@ -16,6 +16,26 @@ type SongRequest = {
 
 type ApproveState = { videoId: string; playlistId: string };
 
+// returns human-readable matches from static playlists + already-approved requests
+function findDuplicates(title: string, approvedRequests: SongRequest[]): string[] {
+  const q = title.toLowerCase().trim();
+  if (!q) return [];
+  const hits: string[] = [];
+  for (const pl of PLAYLISTS) {
+    for (const t of pl.tracks) {
+      const tl = t.title.toLowerCase();
+      if (tl.includes(q) || q.includes(tl))
+        hits.push(`"${t.title}" — ${pl.name}`);
+    }
+  }
+  for (const r of approvedRequests) {
+    const rl = r.title.toLowerCase();
+    if (rl.includes(q) || q.includes(rl))
+      hits.push(`"${r.title}" (approved request)`);
+  }
+  return hits;
+}
+
 export default function AdminPage() {
   const [key, setKey] = useState("");
   const [authed, setAuthed] = useState(false);
@@ -153,6 +173,7 @@ export default function AdminPage() {
         <div className="space-y-3">
           {pending.map((req) => {
             const f = approveFields[req.id] ?? { videoId: "", playlistId: "" };
+            const dupes = findDuplicates(req.title, requests.filter((r) => r.status === "approved"));
             return (
               <div key={req.id} className="rounded-xl border border-white/10 bg-white/5 p-4">
                 <p className="font-medium">{req.title}</p>
@@ -163,6 +184,14 @@ export default function AdminPage() {
                 <p className="mt-1 text-[11px] text-white/25">
                   {new Date(req.timestamp).toLocaleString()}
                 </p>
+                {dupes.length > 0 && (
+                  <div className="mt-2 rounded-lg border border-amber-500/25 bg-amber-500/10 px-3 py-2">
+                    <p className="text-[11px] font-semibold text-amber-400">⚠ Already in the list</p>
+                    {dupes.map((d, i) => (
+                      <p key={i} className="text-[11px] text-amber-300/70">{d}</p>
+                    ))}
+                  </div>
+                )}
 
                 <div className="mt-3 flex flex-col gap-2">
                   <div className="flex gap-2">
