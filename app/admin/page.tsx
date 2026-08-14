@@ -44,6 +44,8 @@ export default function AdminPage() {
   const [loginError, setLoginError] = useState("");
   const [approveFields, setApproveFields] = useState<Record<string, ApproveState>>({});
   const [actionStatus, setActionStatus] = useState<Record<string, string>>({});
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editDraft, setEditDraft] = useState<{ title: string; artist: string }>({ title: "", artist: "" });
 
   const load = useCallback(async (adminKey: string) => {
     setLoading(true);
@@ -116,6 +118,23 @@ export default function AdminPage() {
 
   const setField = (id: string, patch: Partial<ApproveState>) =>
     setApproveFields((s) => ({ ...s, [id]: { ...(s[id] ?? { videoId: "", playlistId: "" }), ...patch } }));
+
+  async function saveEdit(id: string) {
+    setActionStatus((s) => ({ ...s, [id]: "…" }));
+    const res = await fetch("/api/admin/requests", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json", "x-admin-key": key },
+      body: JSON.stringify({ id, action: "edit", title: editDraft.title, artist: editDraft.artist }),
+    }).catch(() => null);
+    if (res?.ok) {
+      setEditingId(null);
+      setActionStatus((s) => ({ ...s, [id]: "✓ Updated" }));
+      load(key);
+    } else {
+      const err = await res?.json().catch(() => null);
+      setActionStatus((s) => ({ ...s, [id]: err?.error ?? "Failed" }));
+    }
+  }
 
   if (!authed) {
     return (
@@ -288,22 +307,68 @@ export default function AdminPage() {
               Processed
             </h2>
             <div className="space-y-2">
-              {done.map((req) => (
-                <div
-                  key={req.id}
-                  className="flex items-center justify-between rounded-xl border border-white/10 bg-white/5 px-4 py-3"
-                >
-                  <div>
-                    <p className="text-sm font-medium">{req.title}</p>
-                    {req.artist && <p className="text-xs text-white/50">{req.artist}</p>}
+              {done.map((req) => {
+                const isEditing = editingId === req.id;
+                return (
+                  <div key={req.id} className="rounded-xl border border-white/10 bg-white/5 px-4 py-3">
+                    {isEditing ? (
+                      <div className="flex flex-col gap-2">
+                        <input
+                          type="text"
+                          value={editDraft.title}
+                          onChange={(e) => setEditDraft((d) => ({ ...d, title: e.target.value }))}
+                          placeholder="Song title"
+                          className="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-1.5 text-xs text-white outline-none"
+                        />
+                        <input
+                          type="text"
+                          value={editDraft.artist}
+                          onChange={(e) => setEditDraft((d) => ({ ...d, artist: e.target.value }))}
+                          placeholder="Singer / Artist"
+                          className="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-1.5 text-xs text-white placeholder-white/25 outline-none"
+                        />
+                        <div className="flex gap-2">
+                          <button
+                            onClick={() => saveEdit(req.id)}
+                            className="flex-1 rounded-lg border border-green-500/25 bg-green-500/15 py-1.5 text-xs font-medium text-green-400 transition hover:bg-green-500/25"
+                          >
+                            Save
+                          </button>
+                          <button
+                            onClick={() => setEditingId(null)}
+                            className="flex-1 rounded-lg border border-white/10 bg-white/5 py-1.5 text-xs text-white/50 transition hover:bg-white/10"
+                          >
+                            Cancel
+                          </button>
+                        </div>
+                        {actionStatus[req.id] && (
+                          <p className="text-center text-xs text-white/50">{actionStatus[req.id]}</p>
+                        )}
+                      </div>
+                    ) : (
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-sm font-medium">{req.title}</p>
+                          {req.artist && <p className="text-xs text-white/50">{req.artist}</p>}
+                        </div>
+                        <div className="flex items-center gap-3">
+                          {req.status === "approved" && (
+                            <button
+                              onClick={() => { setEditingId(req.id); setEditDraft({ title: req.title, artist: req.artist ?? "" }); }}
+                              className="text-xs text-white/30 transition hover:text-white/70"
+                            >
+                              Edit
+                            </button>
+                          )}
+                          <span className={`text-xs font-medium ${req.status === "approved" ? "text-green-400" : "text-red-400"}`}>
+                            {req.status === "approved" ? "✓ Approved" : "✗ Rejected"}
+                          </span>
+                        </div>
+                      </div>
+                    )}
                   </div>
-                  <span
-                    className={`text-xs font-medium ${req.status === "approved" ? "text-green-400" : "text-red-400"}`}
-                  >
-                    {req.status === "approved" ? "✓ Approved" : "✗ Rejected"}
-                  </span>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </>
         )}

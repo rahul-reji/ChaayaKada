@@ -85,5 +85,28 @@ export async function PATCH(req: Request) {
     return NextResponse.json({ ok: true });
   }
 
+  if (action === "edit") {
+    if (!request.playlistId)
+      return NextResponse.json({ error: "no playlistId on this request" }, { status: 400 });
+    const newTitle = (body.title as string)?.trim() || request.title;
+    const newArtist = (body.artist as string)?.trim() ?? "";
+
+    const items: string[] = await redis.lrange(`ck:extra:${request.playlistId}`, 0, -1);
+    const trackId = `req-${id}`;
+    const idx = items.findIndex((item) => {
+      const t = typeof item === "string" ? JSON.parse(item) : item;
+      return t.id === trackId;
+    });
+
+    const updatedRequest = { ...request, title: newTitle, artist: newArtist };
+    const pipe = redis.pipeline().set(`ck:req:${id}`, JSON.stringify(updatedRequest));
+    if (idx !== -1) {
+      const existing = typeof items[idx] === "string" ? JSON.parse(items[idx]) : items[idx];
+      pipe.lset(`ck:extra:${request.playlistId}`, idx, JSON.stringify({ ...existing, title: newTitle, artist: newArtist }));
+    }
+    await pipe.exec();
+    return NextResponse.json({ ok: true });
+  }
+
   return NextResponse.json({ error: "invalid action" }, { status: 400 });
 }
