@@ -232,13 +232,20 @@ export default function AdminPage() {
                             allowFullScreen
                           />
                         </div>
-                        {(f.officialTitle || f.officialArtist) && (
-                          <div className="rounded-lg border border-white/10 bg-white/5 px-3 py-2">
-                            <p className="mb-0.5 text-[10px] text-white/35">Will be added as:</p>
-                            {f.officialTitle && <p className="text-xs font-medium text-white">{f.officialTitle}</p>}
-                            {f.officialArtist && <p className="text-xs text-white/55">{f.officialArtist}</p>}
-                          </div>
-                        )}
+                        <input
+                          type="text"
+                          value={f.officialTitle ?? ""}
+                          onChange={(e) => setField(req.id, { officialTitle: e.target.value })}
+                          placeholder="Song title (will be saved as-is)"
+                          className="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-1.5 text-xs text-white placeholder-white/25 outline-none"
+                        />
+                        <input
+                          type="text"
+                          value={f.officialArtist ?? ""}
+                          onChange={(e) => setField(req.id, { officialArtist: e.target.value })}
+                          placeholder="Singer / Artist"
+                          className="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-1.5 text-xs text-white placeholder-white/25 outline-none"
+                        />
                       </>
                     );
                   })()}
