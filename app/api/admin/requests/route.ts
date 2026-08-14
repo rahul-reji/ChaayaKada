@@ -42,7 +42,7 @@ export async function PATCH(req: Request) {
   if (!authOk(req)) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
 
   const body = await req.json().catch(() => null);
-  const { id, action, videoId, playlistId } = body ?? {};
+  const { id, action, videoId, playlistId, officialTitle, officialArtist } = body ?? {};
 
   if (!id || !action) return NextResponse.json({ error: "missing fields" }, { status: 400 });
 
@@ -64,8 +64,8 @@ export async function PATCH(req: Request) {
 
     const track = {
       id: `req-${id}`,
-      title: request.title,
-      artist: request.artist || "Unknown",
+      title: (officialTitle as string) || request.title,
+      artist: (officialArtist as string) || request.artist || "Unknown",
       film: "",
       year: 0,
       duration: "0:00",

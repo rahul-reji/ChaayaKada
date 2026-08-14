@@ -14,7 +14,7 @@ type SongRequest = {
   playlistId?: string;
 };
 
-type ApproveState = { videoId: string; playlistId: string };
+type ApproveState = { videoId: string; playlistId: string; officialTitle?: string; officialArtist?: string };
 
 // returns human-readable matches from static playlists + already-approved requests
 function findDuplicates(title: string, approvedRequests: SongRequest[]): string[] {
@@ -73,13 +73,18 @@ export default function AdminPage() {
       setActionStatus((s) => ({ ...s, [id]: "✗ Search failed" }));
       return;
     }
-    const { videoId } = await res.json();
+    const { videoId, title: officialTitle, channelTitle: officialArtist } = await res.json();
     if (videoId) {
       setApproveFields((s) => ({
         ...s,
-        [id]: { ...(s[id] ?? { videoId: "", playlistId: "" }), videoId },
+        [id]: {
+          ...(s[id] ?? { videoId: "", playlistId: "" }),
+          videoId,
+          ...(officialTitle && { officialTitle }),
+          ...(officialArtist && { officialArtist }),
+        },
       }));
-      setActionStatus((s) => ({ ...s, [id]: "✓ Found — verify before approving" }));
+      setActionStatus((s) => ({ ...s, [id]: "✓ Verify the preview below" }));
     } else {
       setActionStatus((s) => ({ ...s, [id]: "✗ Not found on YouTube" }));
     }
@@ -210,6 +215,33 @@ export default function AdminPage() {
                       🔍 Auto-fill
                     </button>
                   </div>
+                  {(() => {
+                    const raw = f.videoId.trim();
+                    const embedId = raw
+                      .replace(/.*[?&]v=([^&]+).*/, "$1")
+                      .replace(/.*youtu\.be\/([^?]+).*/, "$1");
+                    if (!/^[a-zA-Z0-9_-]{11}$/.test(embedId)) return null;
+                    return (
+                      <>
+                        <div className="overflow-hidden rounded-lg" style={{ aspectRatio: "16/9" }}>
+                          <iframe
+                            key={embedId}
+                            src={`https://www.youtube.com/embed/${embedId}?controls=1`}
+                            className="h-full w-full border-0"
+                            allow="accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                            allowFullScreen
+                          />
+                        </div>
+                        {(f.officialTitle || f.officialArtist) && (
+                          <div className="rounded-lg border border-white/10 bg-white/5 px-3 py-2">
+                            <p className="mb-0.5 text-[10px] text-white/35">Will be added as:</p>
+                            {f.officialTitle && <p className="text-xs font-medium text-white">{f.officialTitle}</p>}
+                            {f.officialArtist && <p className="text-xs text-white/55">{f.officialArtist}</p>}
+                          </div>
+                        )}
+                      </>
+                    );
+                  })()}
                   <select
                     value={f.playlistId}
                     onChange={(e) => setField(req.id, { playlistId: e.target.value })}

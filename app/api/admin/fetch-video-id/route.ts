@@ -23,7 +23,10 @@ export async function POST(req: Request) {
   if (!res.ok) return NextResponse.json({ videoId: null });
 
   const data = await res.json();
-  const videoId: string | null = data.items?.[0]?.id?.videoId ?? null;
+  const item = data.items?.[0];
+  const videoId: string | null = item?.id?.videoId ?? null;
+  const title: string | null = item?.snippet?.title ?? null;
+  const channelTitle: string | null = item?.snippet?.channelTitle ?? null;
 
-  return NextResponse.json({ videoId });
+  return NextResponse.json({ videoId, title, channelTitle });
 }
