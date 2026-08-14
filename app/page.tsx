@@ -72,9 +72,9 @@ export default function Home() {
         />
       </div>
 
-      {/* The player, bottom-anchored */}
+      {/* The player + watermark, bottom-anchored */}
       <div
-        className="z-10 flex w-full justify-center"
+        className="z-10 flex w-full flex-col items-center gap-2"
         style={{
           paddingBottom: insetBottom,
           paddingLeft: insetLeft,
@@ -82,6 +82,9 @@ export default function Home() {
         }}
       >
         <Player />
+        <p className="pointer-events-none text-xs text-white/50 select-none">
+          ☕ Created by Rahul Reji
+        </p>
       </div>
     </main>
   );
