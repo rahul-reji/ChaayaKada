@@ -25,8 +25,8 @@ export async function POST(req: Request) {
   const data = await res.json();
   const item = data.items?.[0];
   const videoId: string | null = item?.id?.videoId ?? null;
-  const title: string | null = item?.snippet?.title ?? null;
-  const channelTitle: string | null = item?.snippet?.channelTitle ?? null;
+  const officialTitle: string | null = item?.snippet?.title ?? null;
+  const officialArtist: string | null = item?.snippet?.channelTitle ?? null;
 
-  return NextResponse.json({ videoId, title, channelTitle });
+  return NextResponse.json({ videoId, title: officialTitle, channelTitle: officialArtist });
 }
