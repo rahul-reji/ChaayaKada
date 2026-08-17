@@ -2,6 +2,7 @@
 
 import { useState, useCallback } from "react";
 import { PLAYLISTS } from "@/lib/tracks";
+import { STATIONS } from "@/lib/stations";
 
 type SongRequest = {
   id: string;
@@ -47,6 +48,8 @@ export default function AdminPage() {
   const [actionStatus, setActionStatus] = useState<Record<string, string>>({});
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editDraft, setEditDraft] = useState<{ title: string; artist: string; videoId: string }>({ title: "", artist: "", videoId: "" });
+  const [flags, setFlags] = useState<Record<string, boolean>>({});
+  const [flagStatus, setFlagStatus] = useState<Record<string, string>>({});
 
   const load = useCallback(async (adminKey: string) => {
     setLoading(true);
@@ -63,7 +66,27 @@ export default function AdminPage() {
     setRequests(await res.json());
     setAuthed(true);
     setLoading(false);
+    // load feature flags
+    fetch("/api/flags")
+      .then((r) => (r.ok ? r.json() : {}))
+      .then((data: Record<string, boolean>) => setFlags(data))
+      .catch(() => {});
   }, []);
+
+  async function toggleFlag(flag: string, enabled: boolean) {
+    setFlagStatus((s) => ({ ...s, [flag]: "saving…" }));
+    const res = await fetch("/api/admin/flags", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json", "x-admin-key": key },
+      body: JSON.stringify({ flag, enabled }),
+    }).catch(() => null);
+    if (res?.ok) {
+      setFlags((f) => ({ ...f, [flag]: enabled }));
+      setFlagStatus((s) => ({ ...s, [flag]: "" }));
+    } else {
+      setFlagStatus((s) => ({ ...s, [flag]: "✗ failed" }));
+    }
+  }
 
   async function autoFill(id: string, title: string, artist: string) {
     setActionStatus((s) => ({ ...s, [id]: "Searching YouTube…" }));
@@ -214,6 +237,40 @@ export default function AdminPage() {
         </button>
       </div>
       <div className="mx-auto max-w-2xl p-4">
+
+        {/* Feature Flags */}
+        <div className="mb-6 rounded-xl border border-white/10 bg-white/5 p-4">
+          <h2 className="mb-3 text-sm font-semibold text-white/70">Feature Flags</h2>
+          <div className="space-y-3">
+            {STATIONS.filter((s) => s.featureFlag).map((s) => {
+              const flag = s.featureFlag!;
+              const on = flags[flag] === true;
+              return (
+                <div key={flag} className="flex items-center justify-between gap-4">
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium">{s.emoji} {s.englishName} station</p>
+                    <p className="text-xs text-white/35">{flag}</p>
+                  </div>
+                  <div className="flex shrink-0 items-center gap-2">
+                    {flagStatus[flag] && (
+                      <span className="text-xs text-white/40">{flagStatus[flag]}</span>
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => toggleFlag(flag, !on)}
+                      aria-label={on ? "Disable" : "Enable"}
+                      className={`relative h-6 w-11 rounded-full transition-colors ${on ? "bg-green-500" : "bg-white/15"}`}
+                    >
+                      <span
+                        className={`absolute top-0.5 h-5 w-5 rounded-full bg-white shadow-sm transition-transform ${on ? "translate-x-5" : "translate-x-0.5"}`}
+                      />
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
 
         {loading && <p className="text-sm text-white/50">Loading…</p>}
 

@@ -19,19 +19,21 @@ const insetBottom = "max(1rem, env(safe-area-inset-bottom))";
 
 // FM-style tuner display with prev/next channel arrows.
 function TunerStrip({
+  stations,
   activeIdx,
   onPrev,
   onNext,
   scanning,
 }: {
+  stations: typeof STATIONS;
   activeIdx: number;
   onPrev: () => void;
   onNext: () => void;
   scanning: boolean;
 }) {
-  const station = STATIONS[activeIdx];
+  const station = stations[activeIdx];
   const hasPrev = activeIdx > 0;
-  const hasNext = activeIdx < STATIONS.length - 1;
+  const hasNext = activeIdx < stations.length - 1;
 
   return (
     <div
@@ -68,7 +70,7 @@ function TunerStrip({
         </span>
         {/* station dots */}
         <div className="mt-0.5 flex gap-1">
-          {STATIONS.map((_, i) => (
+          {stations.map((_, i) => (
             <div
               key={i}
               className="rounded-full transition-all duration-300"
@@ -103,6 +105,8 @@ export function AppShell() {
   const [stationIdx, setStationIdx] = useState(0);
   const [portrait, setPortrait] = useState(false);
   const [scanning, setScanning] = useState(false);
+  // null = still loading; {} = loaded (all off); { sabarimala: true } = flag on
+  const [flags, setFlags] = useState<Record<string, boolean> | null>(null);
 
   useEffect(() => {
     const mq = window.matchMedia("(orientation: portrait)");
@@ -112,8 +116,23 @@ export function AppShell() {
     return () => mq.removeEventListener("change", update);
   }, []);
 
+  useEffect(() => {
+    fetch("/api/flags")
+      .then((r) => (r.ok ? r.json() : {}))
+      .then((data: Record<string, boolean>) => setFlags(data))
+      .catch(() => setFlags({}));
+  }, []);
+
+  // hide stations whose featureFlag is off; while flags are loading, hide flagged stations
+  const visibleStations = STATIONS.filter(
+    (s) => !s.featureFlag || (flags !== null && flags[s.featureFlag] === true)
+  );
+
+  // clamp index if visible set shrank
+  const safeIdx = Math.min(stationIdx, Math.max(0, visibleStations.length - 1));
+
   const switchStation = (next: number) => {
-    if (next === stationIdx || next < 0 || next >= STATIONS.length) return;
+    if (next === safeIdx || next < 0 || next >= visibleStations.length) return;
     setScanning(true);
     setTimeout(() => {
       setStationIdx(next);
@@ -121,7 +140,7 @@ export function AppShell() {
     }, 420);
   };
 
-  const station = STATIONS[stationIdx];
+  const station = visibleStations[safeIdx] ?? STATIONS[0];
   const bgImage = portrait ? station.bgTall : station.bgWide;
 
   return (
@@ -191,9 +210,10 @@ export function AppShell() {
         }}
       >
         <TunerStrip
-          activeIdx={stationIdx}
-          onPrev={() => switchStation(stationIdx - 1)}
-          onNext={() => switchStation(stationIdx + 1)}
+          stations={visibleStations}
+          activeIdx={safeIdx}
+          onPrev={() => switchStation(safeIdx - 1)}
+          onNext={() => switchStation(safeIdx + 1)}
           scanning={scanning}
         />
         <Player key={station.id} basePlaylists={station.playlists} />

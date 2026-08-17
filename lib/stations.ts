@@ -11,6 +11,7 @@ export type Station = {
   bgTall: string;
   accent: string;
   playlists: Playlist[];
+  featureFlag?: string; // if set, station is hidden unless this flag is enabled in Redis
 };
 
 export const STATIONS: Station[] = [
@@ -34,6 +35,7 @@ export const STATIONS: Station[] = [
     bgWide: "/bg/sabarimala-scene-wide.png",
     bgTall: "/bg/sabarimala-scene-tall.png",
     accent: "#f97316",
+    featureFlag: "sabarimala",
     playlists: SABARIMALA_PLAYLISTS,
   },
 ];
