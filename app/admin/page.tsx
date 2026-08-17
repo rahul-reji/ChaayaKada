@@ -163,11 +163,12 @@ export default function AdminPage() {
 
   if (!authed) {
     return (
-      <main className="flex min-h-dvh items-center justify-center bg-[#0d0c0a] p-6">
+      <main className="flex min-h-dvh items-center justify-center bg-[#0d0c0a] p-6" style={{ paddingTop: "max(1.5rem, env(safe-area-inset-top))" }}>
         <form
           onSubmit={(e) => { e.preventDefault(); load(key); }}
           className="w-full max-w-xs space-y-4"
         >
+          <div className="mb-2 text-2xl">☕</div>
           <h1 className="text-xl font-semibold text-white">Chayakada Admin</h1>
           <input
             type="password"
@@ -175,13 +176,13 @@ export default function AdminPage() {
             onChange={(e) => setKey(e.target.value)}
             placeholder="Admin key"
             autoComplete="current-password"
-            className="w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2.5 text-sm text-white placeholder-white/30 outline-none"
+            className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3.5 text-base text-white placeholder-white/30 outline-none"
           />
           {loginError && <p className="text-sm text-red-400">{loginError}</p>}
           <button
             type="submit"
             disabled={loading}
-            className="w-full rounded-xl border border-amber-500/30 bg-amber-500/15 py-2.5 text-sm font-medium text-amber-300 disabled:opacity-50"
+            className="w-full rounded-xl border border-amber-500/30 bg-amber-500/15 py-3.5 text-base font-medium text-amber-300 disabled:opacity-50"
           >
             {loading ? "Checking…" : "Enter"}
           </button>
@@ -194,22 +195,24 @@ export default function AdminPage() {
   const done = requests.filter((r) => r.status !== "pending");
 
   return (
-    <main className="min-h-dvh bg-[#0d0c0a] p-6 text-white">
-      <div className="mx-auto max-w-2xl">
-        <div className="mb-6 flex items-center justify-between">
-          <h1 className="text-xl font-semibold">
-            Song Requests{" "}
-            <span className="text-base font-normal text-white/40">
-              ({pending.length} pending)
-            </span>
-          </h1>
-          <button
-            onClick={() => load(key)}
-            className="text-sm text-white/40 transition hover:text-white"
-          >
-            ↻ Refresh
-          </button>
-        </div>
+    <main className="min-h-dvh bg-[#0d0c0a] text-white" style={{ paddingBottom: "env(safe-area-inset-bottom)" }}>
+      {/* sticky header */}
+      <div
+        className="sticky top-0 z-10 flex items-center justify-between border-b border-white/8 bg-[#0d0c0a]/95 px-4 py-3 backdrop-blur-md"
+        style={{ paddingTop: "max(0.75rem, env(safe-area-inset-top))" }}
+      >
+        <h1 className="text-base font-semibold">
+          Requests{" "}
+          <span className="font-normal text-white/40">({pending.length} pending)</span>
+        </h1>
+        <button
+          onClick={() => load(key)}
+          className="rounded-lg border border-white/10 bg-white/5 px-3 py-1.5 text-sm text-white/60 transition active:bg-white/15"
+        >
+          ↻ Refresh
+        </button>
+      </div>
+      <div className="mx-auto max-w-2xl p-4">
 
         {loading && <p className="text-sm text-white/50">Loading…</p>}
 
