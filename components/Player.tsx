@@ -494,6 +494,32 @@ export function Player() {
   const desktopHostRef = useRef<HTMLDivElement | null>(null);
   const mobileHostRef = useRef<HTMLDivElement | null>(null);
 
+  // Silent AudioContext loop — keeps Android from suspending the tab during background play
+  const audioCtxRef = useRef<AudioContext | null>(null);
+  useEffect(() => {
+    if (isPlaying) {
+      try {
+        if (!audioCtxRef.current || audioCtxRef.current.state === "closed") {
+          const ctx = new AudioContext();
+          const buf = ctx.createBuffer(1, ctx.sampleRate, ctx.sampleRate);
+          const src = ctx.createBufferSource();
+          src.buffer = buf;
+          src.loop = true;
+          const gain = ctx.createGain();
+          gain.gain.value = 0.001; // near-silent, not zero — avoids browser optimisation
+          src.connect(gain);
+          gain.connect(ctx.destination);
+          src.start();
+          audioCtxRef.current = ctx;
+        } else if (audioCtxRef.current.state === "suspended") {
+          audioCtxRef.current.resume().catch(() => {});
+        }
+      } catch { /* noop — unsupported browser */ }
+    } else {
+      audioCtxRef.current?.suspend().catch(() => {});
+    }
+  }, [isPlaying]);
+
   // Latest values the (rarely re-running) init effect needs, without adding
   // them as deps and forcing a costly player re-create.
   const restoreRef = useRef({ videoId: "", elapsed: 0, wasPlaying: false });
