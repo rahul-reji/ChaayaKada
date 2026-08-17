@@ -21,7 +21,7 @@ const SHARE_CHANNELS = [
   },
   {
     label: "Facebook",
-    href: `https://www.facebook.com/sharer/sharer.php?u=${encoded}`,
+    href: `https://www.facebook.com/sharer/sharer.php?u=${encoded}&quote=${encodeURIComponent(SHARE_TEXT)}`,
     color: "#1877F2",
     icon: (
       <svg viewBox="0 0 24 24" className="h-5 w-5" fill="currentColor" aria-hidden>
