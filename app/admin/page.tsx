@@ -63,7 +63,20 @@ export default function AdminPage() {
       setLoading(false);
       return;
     }
-    setRequests(await res.json());
+    if (!res.ok) {
+      setLoginError(`Server error (${res.status})`);
+      setLoading(false);
+      return;
+    }
+    let data: SongRequest[];
+    try {
+      data = await res.json();
+    } catch {
+      setLoginError("Invalid server response — try again");
+      setLoading(false);
+      return;
+    }
+    setRequests(data);
     setAuthed(true);
     setLoading(false);
     // load feature flags
