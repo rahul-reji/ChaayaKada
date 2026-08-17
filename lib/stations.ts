@@ -35,7 +35,7 @@ export const STATIONS: Station[] = [
     bgWide: "/bg/sabarimala-scene-wide.png",
     bgTall: "/bg/sabarimala-scene-tall.png",
     accent: "#f97316",
-    featureFlag: "sabarimala",
+    // featureFlag: "sabarimala",
     playlists: SABARIMALA_PLAYLISTS,
   },
 ];

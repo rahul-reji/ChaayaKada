@@ -18,85 +18,220 @@ const insetRight = "max(1rem, env(safe-area-inset-right))";
 const insetBottom = "max(1rem, env(safe-area-inset-bottom))";
 
 // FM-style tuner display with prev/next channel arrows.
+function DialButton({
+  label,
+  onClick,
+  disabled,
+  handActive,
+  dialDir = "right",
+}: {
+  label: string;
+  onClick: () => void;
+  disabled?: boolean;
+  handActive: boolean;
+  dialDir?: "left" | "right";
+}) {
+  return (
+    <div className="relative shrink-0">
+      <button
+        type="button"
+        onClick={onClick}
+        disabled={disabled}
+        aria-label={label}
+        className="relative flex h-10 w-10 flex-col items-center justify-center rounded-full transition active:scale-95 disabled:opacity-25"
+        style={{
+          background: "radial-gradient(circle at 38% 36%, #424242, #1c1c1c)",
+          boxShadow:
+            "0 5px 14px rgba(0,0,0,0.75), inset 0 1px 0 rgba(255,255,255,0.13), inset 0 -1px 0 rgba(0,0,0,0.55)",
+          border: "1px solid rgba(255,255,255,0.1)",
+        }}
+      >
+        {/* concentric groove rings */}
+        <div
+          className="pointer-events-none absolute inset-0 rounded-full"
+          style={{
+            background:
+              "repeating-radial-gradient(circle at 50% 50%, transparent 0 38%, rgba(255,255,255,0.025) 38% 40%, transparent 40% 48%)",
+          }}
+          aria-hidden
+        />
+        <span className="relative text-[9px] font-bold uppercase tracking-widest text-white/65">
+          {label}
+        </span>
+      </button>
+
+      {/* hand animation — overlaid when this dial was turned */}
+      {handActive && (
+        <div
+          className="pointer-events-none absolute inset-0 flex items-center justify-center"
+          style={{ animation: `${dialDir === "left" ? "turn-dial-left" : "turn-dial"} 0.42s ease-in-out forwards` }}
+          aria-hidden
+        >
+          <span style={{ fontSize: 22, filter: "drop-shadow(0 2px 6px rgba(0,0,0,0.9))" }}>
+            🤚
+          </span>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function TunerStrip({
   stations,
   activeIdx,
   onPrev,
   onNext,
-  scanning,
+  scanDir,
 }: {
   stations: typeof STATIONS;
   activeIdx: number;
   onPrev: () => void;
   onNext: () => void;
-  scanning: boolean;
+  scanDir: "prev" | "next" | null;
 }) {
   const station = stations[activeIdx];
   const hasPrev = activeIdx > 0;
   const hasNext = activeIdx < stations.length - 1;
+  const needlePct = stations.length > 1 ? (activeIdx / (stations.length - 1)) * 100 : 50;
+  const scanning = scanDir !== null;
 
   return (
     <div
-      className="flex items-center gap-3 rounded-xl border border-white/10 bg-black/60 px-3 py-2 backdrop-blur-md"
-      style={{ boxShadow: `0 0 18px -6px ${station.accent}50` }}
+      className="flex w-full sm:w-[500px] shrink-0 flex-col overflow-hidden rounded-2xl border border-white/10 bg-black/70 backdrop-blur-md"
+      style={{ boxShadow: `0 0 28px -8px ${station.accent}50` }}
     >
-      {/* prev channel */}
-      <button
-        type="button"
-        onClick={onPrev}
-        disabled={!hasPrev}
-        aria-label="Previous station"
-        className="grid h-7 w-7 place-items-center rounded-lg text-white/50 transition hover:bg-white/10 hover:text-white disabled:opacity-20"
+      {/* LCD display */}
+      <div
+        className="flex flex-col items-center px-2 pt-2.5 pb-1.5"
+        style={{ background: "rgba(0,0,0,0.55)", borderBottom: "1px solid rgba(255,255,255,0.06)" }}
       >
-        <svg viewBox="0 0 16 16" fill="currentColor" className="h-3.5 w-3.5">
-          <path d="M3.5 8a.5.5 0 0 1 .146-.354l5-5a.5.5 0 0 1 .708.708L4.707 8l4.647 4.646a.5.5 0 0 1-.708.708l-5-5A.5.5 0 0 1 3.5 8z"/>
-          <path d="M8 8a.5.5 0 0 1 .146-.354l5-5a.5.5 0 0 1 .708.708L9.207 8l4.647 4.646a.5.5 0 0 1-.708.708l-5-5A.5.5 0 0 1 8 8z"/>
-        </svg>
-      </button>
-
-      {/* station display */}
-      <div className="flex min-w-[120px] flex-col items-center gap-0.5">
-        <span className="text-[9px] font-semibold uppercase tracking-[0.18em] text-white/30">
-          {scanning ? "scanning…" : "station"}
+        <span className="text-[7px] font-semibold uppercase tracking-[0.22em] text-white/25">
+          {scanning ? "scanning…" : "now on air"}
         </span>
         <span
-          className="text-[13px] font-semibold tracking-wide transition-all duration-300"
+          className="mt-0.5 text-center text-[15px] font-semibold leading-tight tracking-wide transition-all duration-300"
           style={{
-            color: scanning ? "rgba(255,255,255,0.4)" : station.accent,
-            filter: scanning ? "blur(3px)" : "none",
+            color: scanning ? "rgba(255,255,255,0.25)" : station.accent,
+            filter: scanning ? "blur(5px)" : "none",
           }}
         >
           {station.emoji} {station.englishName}
         </span>
-        {/* station dots */}
-        <div className="mt-0.5 flex gap-1">
-          {stations.map((_, i) => (
+      </div>
+
+      {/* FM frequency band */}
+      <div className="relative mx-2 mt-1.5" style={{ height: 42 }}>
+        {/* band rail */}
+        <div
+          className="absolute inset-x-0"
+          style={{
+            top: "50%",
+            transform: "translateY(-50%)",
+            height: 14,
+            background: "linear-gradient(90deg,#111 0%,#222 45%,#1a1a1a 100%)",
+            border: "1px solid rgba(255,255,255,0.07)",
+            borderRadius: 3,
+          }}
+        />
+
+        {/* frequency tick marks + labels */}
+        {Array.from({ length: 9 }).map((_, i) => {
+          const pct = (i / 8) * 100;
+          return (
             <div
               key={i}
-              className="rounded-full transition-all duration-300"
-              style={{
-                width: i === activeIdx ? 14 : 5,
-                height: 3,
-                background: i === activeIdx ? station.accent : "rgba(255,255,255,0.2)",
-              }}
-            />
-          ))}
+              className="absolute top-0 flex flex-col items-center"
+              style={{ left: `${pct}%`, transform: "translateX(-50%)" }}
+            >
+              <span className="text-[5.5px] tabular-nums text-white/20">
+                {88 + i * 2}
+              </span>
+              <div
+                style={{
+                  width: 1,
+                  height: i % 2 === 0 ? 7 : 4,
+                  marginTop: 1,
+                  background: "rgba(255,255,255,0.18)",
+                  borderRadius: 1,
+                }}
+              />
+            </div>
+          );
+        })}
+
+        {/* station dot markers */}
+        {stations.map((s, i) => {
+          const pct = stations.length > 1 ? (i / (stations.length - 1)) * 100 : 50;
+          const isActive = i === activeIdx;
+          return (
+            <div
+              key={s.id}
+              className="absolute bottom-0 flex flex-col items-center"
+              style={{ left: `${pct}%`, transform: "translateX(-50%)" }}
+            >
+              <span className="text-[8px] leading-none" style={{ opacity: isActive ? 1 : 0.4 }}>
+                {s.emoji}
+              </span>
+              <div
+                className="mt-0.5 rounded-full transition-all duration-500"
+                style={{
+                  width: isActive ? 7 : 4,
+                  height: isActive ? 7 : 4,
+                  background: isActive ? s.accent : "rgba(255,255,255,0.25)",
+                  boxShadow: isActive ? `0 0 8px ${s.accent}` : "none",
+                }}
+              />
+            </div>
+          );
+        })}
+
+        {/* sliding needle */}
+        <div
+          className="pointer-events-none absolute inset-y-0 flex flex-col items-center"
+          style={{
+            left: `${needlePct}%`,
+            transform: "translateX(-50%)",
+            transition: "left 0.42s cubic-bezier(0.4, 0, 0.2, 1)",
+          }}
+        >
+          <div
+            style={{
+              width: 0,
+              height: 0,
+              borderLeft: "3px solid transparent",
+              borderRight: "3px solid transparent",
+              borderBottom: "5px solid rgba(255,70,70,0.95)",
+            }}
+          />
+          <div
+            className="flex-1"
+            style={{
+              width: 2,
+              background: "linear-gradient(to bottom, rgba(255,70,70,0.95), rgba(255,70,70,0.4))",
+              boxShadow: "0 0 5px rgba(255,70,70,0.8)",
+              borderRadius: 1,
+            }}
+          />
         </div>
       </div>
 
-      {/* next channel */}
-      <button
-        type="button"
-        onClick={onNext}
-        disabled={!hasNext}
-        aria-label="Next station"
-        className="grid h-7 w-7 place-items-center rounded-lg text-white/50 transition hover:bg-white/10 hover:text-white disabled:opacity-20"
-      >
-        <svg viewBox="0 0 16 16" fill="currentColor" className="h-3.5 w-3.5">
-          <path d="M12.5 8a.5.5 0 0 0-.146-.354l-5-5a.5.5 0 0 0-.708.708L11.293 8 6.646 12.646a.5.5 0 0 0 .708.708l5-5A.5.5 0 0 0 12.5 8z"/>
-          <path d="M8 8a.5.5 0 0 0-.146-.354l-5-5a.5.5 0 0 0-.708.708L6.793 8 2.146 12.646a.5.5 0 0 0 .708.708l5-5A.5.5 0 0 0 8 8z"/>
-        </svg>
-      </button>
+      {/* dial buttons row */}
+      <div className="flex items-center justify-between px-6 py-2">
+        <DialButton
+          label="Prev"
+          onClick={onPrev}
+          disabled={!hasPrev}
+          handActive={scanDir === "prev"}
+          dialDir="left"
+        />
+        <DialButton
+          label="Next"
+          onClick={onNext}
+          disabled={!hasNext}
+          handActive={scanDir === "next"}
+          dialDir="right"
+        />
+      </div>
     </div>
   );
 }
@@ -104,7 +239,7 @@ function TunerStrip({
 export function AppShell() {
   const [stationIdx, setStationIdx] = useState(0);
   const [portrait, setPortrait] = useState(false);
-  const [scanning, setScanning] = useState(false);
+  const [scanDir, setScanDir] = useState<"prev" | "next" | null>(null);
   // null = still loading; {} = loaded (all off); { sabarimala: true } = flag on
   const [flags, setFlags] = useState<Record<string, boolean> | null>(null);
 
@@ -131,12 +266,12 @@ export function AppShell() {
   // clamp index if visible set shrank
   const safeIdx = Math.min(stationIdx, Math.max(0, visibleStations.length - 1));
 
-  const switchStation = (next: number) => {
+  const switchStation = (next: number, dir: "prev" | "next") => {
     if (next === safeIdx || next < 0 || next >= visibleStations.length) return;
-    setScanning(true);
+    setScanDir(dir);
     setTimeout(() => {
       setStationIdx(next);
-      setScanning(false);
+      setScanDir(null);
     }, 420);
   };
 
@@ -148,7 +283,7 @@ export function AppShell() {
       {/* background — crossfades on station change */}
       <div
         className="fixed inset-0 -z-20 bg-cover bg-center transition-all duration-700"
-        style={{ backgroundImage: `url("${bgImage}")`, filter: scanning ? "brightness(0.4) blur(4px)" : "none" }}
+        style={{ backgroundImage: `url("${bgImage}")`, filter: scanDir ? "brightness(0.4) blur(4px)" : "none" }}
       >
         <div className="absolute inset-0 bg-gradient-to-b from-black/35 via-transparent to-black/80" />
       </div>
@@ -187,8 +322,8 @@ export function AppShell() {
         className="z-10 flex w-full justify-center transition-all duration-300"
         style={{
           paddingTop: `calc(${insetTop} + 3.25rem)`,
-          opacity: scanning ? 0 : 1,
-          transform: scanning ? "scale(0.96)" : "scale(1)",
+          opacity: scanDir ? 0 : 1,
+          transform: scanDir ? "scale(0.96)" : "scale(1)",
         }}
       >
         {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -200,9 +335,9 @@ export function AppShell() {
         />
       </div>
 
-      {/* tuner strip + player + watermark — bottom-anchored */}
+      {/* radio panel + player — stacked in portrait, side by side on sm+ */}
       <div
-        className="z-10 flex w-full flex-col items-center gap-2"
+        className="z-10 flex w-full flex-col items-stretch gap-2 sm:flex-row sm:items-end"
         style={{
           paddingBottom: insetBottom,
           paddingLeft: insetLeft,
@@ -212,14 +347,16 @@ export function AppShell() {
         <TunerStrip
           stations={visibleStations}
           activeIdx={safeIdx}
-          onPrev={() => switchStation(safeIdx - 1)}
-          onNext={() => switchStation(safeIdx + 1)}
-          scanning={scanning}
+          onPrev={() => switchStation(safeIdx - 1, "prev")}
+          onNext={() => switchStation(safeIdx + 1, "next")}
+          scanDir={scanDir}
         />
-        <Player key={station.id} basePlaylists={station.playlists} />
-        <p className="pointer-events-none select-none text-xs text-white/50">
-          ☕ Created by Rahul Reji
-        </p>
+        <div className="flex min-w-0 flex-1 flex-col items-center gap-1">
+          <Player key={station.id} basePlaylists={station.playlists} />
+          <p className="pointer-events-none select-none text-xs text-white/50">
+            ☕ Created by Rahul Reji
+          </p>
+        </div>
       </div>
     </main>
   );
