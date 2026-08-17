@@ -7,6 +7,7 @@ export async function POST(req: Request) {
   const artist = typeof body?.artist === "string" ? body.artist.trim().slice(0, 80) : "";
   const note = typeof body?.note === "string" ? body.note.trim().slice(0, 300) : "";
   const rawYtUrl = typeof body?.youtubeUrl === "string" ? body.youtubeUrl.trim() : "";
+  const stationId = typeof body?.stationId === "string" ? body.stationId.trim().slice(0, 40) : "chayakada";
   // Extract and validate 11-char YouTube video ID
   const ytVidId = rawYtUrl
     .replace(/.*[?&]v=([a-zA-Z0-9_-]{11}).*/, "$1")
@@ -19,7 +20,7 @@ export async function POST(req: Request) {
   const timestamp = Date.now();
 
   await redis.pipeline()
-    .set(`ck:req:${id}`, JSON.stringify({ id, title, artist, note, youtubeVideoId, timestamp, status: "pending" }))
+    .set(`ck:req:${id}`, JSON.stringify({ id, title, artist, note, youtubeVideoId, stationId, timestamp, status: "pending" }))
     .zadd("ck:req_ids", { score: timestamp, member: id })
     .exec();
 

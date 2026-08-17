@@ -11,6 +11,7 @@ type SongRequest = {
   note: string;
   timestamp: number;
   status: "pending" | "approved" | "rejected";
+  stationId?: string;
   videoId?: string;
   playlistId?: string;
   youtubeVideoId?: string;
@@ -297,6 +298,16 @@ export default function AdminPage() {
             const dupes = findDuplicates(req.title, requests.filter((r) => r.status === "approved"));
             return (
               <div key={req.id} className="rounded-xl border border-white/10 bg-white/5 p-4">
+                <div className="mb-2 flex items-center gap-2">
+                  {req.stationId && (() => {
+                    const st = STATIONS.find((s) => s.id === req.stationId);
+                    return st ? (
+                      <span className="rounded-full border border-white/10 bg-white/8 px-2 py-0.5 text-[10px] font-medium text-white/50">
+                        {st.emoji} {st.englishName}
+                      </span>
+                    ) : null;
+                  })()}
+                </div>
                 <p className="font-medium">{req.title}</p>
                 {req.artist && <p className="text-sm text-white/60">{req.artist}</p>}
                 {req.note && (

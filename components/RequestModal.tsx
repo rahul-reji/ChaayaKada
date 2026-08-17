@@ -4,7 +4,7 @@ import { useState } from "react";
 
 type Status = "idle" | "loading" | "success" | "error";
 
-export function RequestModal({ open, onClose }: { open: boolean; onClose: () => void }) {
+export function RequestModal({ open, onClose, stationId, stationName }: { open: boolean; onClose: () => void; stationId: string; stationName: string }) {
   const [title, setTitle] = useState("");
   const [artist, setArtist] = useState("");
   const [note, setNote] = useState("");
@@ -18,7 +18,7 @@ export function RequestModal({ open, onClose }: { open: boolean; onClose: () => 
     const res = await fetch("/api/request", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ title: title.trim(), artist: artist.trim(), note: note.trim(), youtubeUrl: youtubeUrl.trim() }),
+      body: JSON.stringify({ title: title.trim(), artist: artist.trim(), note: note.trim(), youtubeUrl: youtubeUrl.trim(), stationId }),
     }).catch(() => null);
     setStatus(res?.ok ? "success" : "error");
   }
@@ -83,6 +83,12 @@ export function RequestModal({ open, onClose }: { open: boolean; onClose: () => 
             </p>
 
             <div className="flex flex-col gap-3">
+              <div>
+                <label className="mb-1 block text-xs font-medium text-white/60">Station</label>
+                <div className="w-full rounded-xl border border-white/8 bg-white/[0.03] px-3 py-2 text-sm text-white/40">
+                  {stationName}
+                </div>
+              </div>
               <div>
                 <label className="mb-1 block text-xs font-medium text-white/60">Song Title *</label>
                 <input

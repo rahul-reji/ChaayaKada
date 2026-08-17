@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { RequestModal } from "./RequestModal";
 
-export function RequestButton() {
+export function RequestButton({ stationId, stationName }: { stationId: string; stationName: string }) {
   const [open, setOpen] = useState(false);
 
   return (
@@ -29,7 +29,7 @@ export function RequestButton() {
         </svg>
         <span className="hidden sm:inline">Request a Song</span>
       </button>
-      <RequestModal open={open} onClose={() => setOpen(false)} />
+      <RequestModal open={open} onClose={() => setOpen(false)} stationId={stationId} stationName={stationName} />
     </>
   );
 }

@@ -13,6 +13,7 @@ export type Station = {
   accent: string;
   playlists: Playlist[];
   featureFlag?: string; // if set, station is hidden unless this flag is enabled in Redis
+  seekThumb?: string;   // emoji shown as the seek bar thumb
 };
 
 export const STATIONS: Station[] = [
@@ -37,6 +38,7 @@ export const STATIONS: Station[] = [
     bgTall: "/bg/sabarimala-scene-tall.png",
     accent: "#f97316",
     featureFlag: "sabarimala",
+    seekThumb: "🪔",
     playlists: SABARIMALA_PLAYLISTS,
   },
   {
@@ -49,6 +51,7 @@ export const STATIONS: Station[] = [
     bgTall: "/bg/onam-tall.png",
     accent: "#22c55e",
     featureFlag: "onam",
+    seekThumb: "🌸",
     playlists: ONAM_PLAYLISTS,
   },
 ];

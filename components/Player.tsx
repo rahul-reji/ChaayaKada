@@ -183,9 +183,11 @@ function TimeReadout({ seconds }: { seconds: number }) {
 function SeekBar({
   fraction,
   onScrub,
+  thumb = "☕",
 }: {
   fraction: number;
   onScrub: (frac: number, commit: boolean) => void;
+  thumb?: string;
 }) {
   const railRef = useRef<HTMLDivElement | null>(null);
   const [hover, setHover] = useState(false);
@@ -235,7 +237,7 @@ function SeekBar({
           className="pointer-events-none absolute top-1/2 -translate-x-1/2 -translate-y-1/2 select-none text-[14px] leading-none"
           style={{ left: `${pct}%` }}
         >
-          ☕
+          {thumb}
         </div>
       </div>
     </div>
@@ -446,7 +448,7 @@ function PlaylistTabs({
 // ===========================================================================
 // <Player/> — the engine
 // ===========================================================================
-export function Player({ basePlaylists }: { basePlaylists?: Playlist[] } = {}) {
+export function Player({ basePlaylists, seekThumb = "☕" }: { basePlaylists?: Playlist[]; seekThumb?: string } = {}) {
   const BASE = basePlaylists ?? PLAYLISTS;
   const [playlistIndex, setPlaylistIndex] = useState(0);
   const [trackIndex, setTrackIndex] = useState(0);
@@ -839,7 +841,7 @@ export function Player({ basePlaylists }: { basePlaylists?: Playlist[] } = {}) {
           <TitleBlock title={current.title} artist={current.artist} />
           <div className="flex items-center gap-2.5">
             <TimeReadout seconds={elapsed} />
-            <SeekBar fraction={fraction} onScrub={onScrub} />
+            <SeekBar fraction={fraction} onScrub={onScrub} thumb={seekThumb} />
             <TimeReadout seconds={duration} />
           </div>
         </div>
@@ -880,7 +882,7 @@ export function Player({ basePlaylists }: { basePlaylists?: Playlist[] } = {}) {
         </div>
 
         {/* row 2 — full-width seek */}
-        <SeekBar fraction={fraction} onScrub={onScrub} />
+        <SeekBar fraction={fraction} onScrub={onScrub} thumb={seekThumb} />
 
         {/* row 3 — times left, transport centred, controls */}
         <div className="grid grid-cols-3 items-center">

@@ -376,7 +376,7 @@ export function AppShell() {
         aria-label="Social links"
       >
         <InstallButton />
-        <RequestButton />
+        <RequestButton stationId={station.id} stationName={station.englishName} />
         <ShareButton />
       </nav>
 
@@ -426,7 +426,7 @@ export function AppShell() {
           />
         </div>
         <div className="flex min-w-0 flex-1 flex-col items-center gap-1">
-          <Player key={station.id} basePlaylists={station.playlists} />
+          <Player key={station.id} basePlaylists={station.playlists} seekThumb={station.seekThumb ?? "☕"} />
           <p className="pointer-events-none select-none text-xs text-white/50">
             ☕ Created by Rahul Reji
           </p>
