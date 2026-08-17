@@ -487,8 +487,8 @@ export function Player({ basePlaylists }: { basePlaylists?: Playlist[] } = {}) {
 
   const playlist = playlists[playlistIndex];
   const tracks = playlist.tracks;
-  const current: Track = tracks[trackIndex];
-  const hasVideo = Boolean(current.videoId);
+  const current = tracks[trackIndex] as Track | undefined;
+  const hasVideo = Boolean(current?.videoId);
   const anyPlayable = useMemo(() => tracks.some((t) => t.videoId), [tracks]);
 
   const ytRef = useRef<YT.Player | null>(null);
@@ -531,7 +531,7 @@ export function Player({ basePlaylists }: { basePlaylists?: Playlist[] } = {}) {
   // them as deps and forcing a costly player re-create.
   const restoreRef = useRef({ videoId: "", elapsed: 0, wasPlaying: false });
   const autoplayRef = useRef(false);
-  restoreRef.current = { videoId: current.videoId, elapsed, wasPlaying: isPlaying };
+  if (current) restoreRef.current = { videoId: current.videoId, elapsed, wasPlaying: isPlaying };
 
   // Latest ENDED / error handlers, so the (layout-keyed) player created once per
   // breakpoint always calls current logic instead of a stale closure after a
@@ -630,7 +630,7 @@ export function Player({ basePlaylists }: { basePlaylists?: Playlist[] } = {}) {
     if (!p || !isReady) return;
     setElapsed(0);
     setDuration(0);
-    if (!current.videoId) {
+    if (!current?.videoId) {
       try {
         p.stopVideo();
       } catch {
@@ -640,9 +640,9 @@ export function Player({ basePlaylists }: { basePlaylists?: Playlist[] } = {}) {
       return;
     }
     if (autoplayRef.current) {
-      p.loadVideoById(current.videoId);
+      p.loadVideoById(current?.videoId ?? "");
     } else {
-      p.cueVideoById(current.videoId);
+      p.cueVideoById(current?.videoId ?? "");
     }
     autoplayRef.current = false;
     // Keyed on selection only (NOT isReady): re-creating the player on a
@@ -671,10 +671,10 @@ export function Player({ basePlaylists }: { basePlaylists?: Playlist[] } = {}) {
   // ---- controls ------------------------------------------------------------
   const togglePlay = useCallback(() => {
     const p = ytRef.current;
-    if (!p || !current.videoId) return; // never gate on canplay; safe no-op if empty
+    if (!p || !current?.videoId) return; // never gate on canplay; safe no-op if empty
     if (isPlaying) p.pauseVideo();
     else p.playVideo();
-  }, [isPlaying, current.videoId]);
+  }, [isPlaying, current?.videoId]);
 
   // Global spacebar → play/pause, suppressing the default page scroll.
   useEffect(() => {
@@ -766,7 +766,7 @@ export function Player({ basePlaylists }: { basePlaylists?: Playlist[] } = {}) {
       skipTo(1, true);
     };
     errorRef.current = (code: number) => {
-      analytics("yt_error", { code, videoId: current.videoId });
+      analytics("yt_error", { code, videoId: current?.videoId ?? "" });
       autoplayRef.current = true;
       skipTo(1, true);
     };
@@ -785,14 +785,14 @@ export function Player({ basePlaylists }: { basePlaylists?: Playlist[] } = {}) {
   useEffect(() => {
     if (!("mediaSession" in navigator)) return;
     navigator.mediaSession.metadata = new MediaMetadata({
-      title: current.title,
-      artist: current.artist,
+      title: current?.title ?? "",
+      artist: current?.artist ?? "",
       album: "Chayakada",
-      artwork: current.videoId
+      artwork: current?.videoId
         ? [{ src: `https://img.youtube.com/vi/${current.videoId}/mqdefault.jpg`, sizes: "320x180", type: "image/jpeg" }]
         : [],
     });
-  }, [current.videoId, current.title, current.artist]);
+  }, [current?.videoId, current?.title, current?.artist]);
 
   useEffect(() => {
     if (!("mediaSession" in navigator)) return;
@@ -815,6 +815,8 @@ export function Player({ basePlaylists }: { basePlaylists?: Playlist[] } = {}) {
   }, []);
 
   const fraction = duration > 0 ? elapsed / duration : 0;
+
+  if (!current) return null; // empty playlist
 
   // =========================================================================
   // Render — TWO SEPARATE BLOCKS (hidden sm:flex / sm:hidden). Only the active
