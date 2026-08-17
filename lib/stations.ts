@@ -1,5 +1,6 @@
 import { PLAYLISTS, type Playlist } from "./tracks";
 import { SABARIMALA_PLAYLISTS } from "./sabarimala-tracks";
+import { ONAM_PLAYLISTS } from "./onam-tracks";
 
 export type Station = {
   id: string;
@@ -37,5 +38,17 @@ export const STATIONS: Station[] = [
     accent: "#f97316",
     featureFlag: "sabarimala",
     playlists: SABARIMALA_PLAYLISTS,
+  },
+  {
+    id: "onam",
+    name: "ഓണം",
+    englishName: "Onam",
+    emoji: "🌸",
+    logo: "/bg/onam-logo.png",
+    bgWide: "/bg/onam-wide.png",
+    bgTall: "/bg/onam-tall.png",
+    accent: "#22c55e",
+    featureFlag: "onam",
+    playlists: ONAM_PLAYLISTS,
   },
 ];
