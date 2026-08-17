@@ -236,6 +236,67 @@ function TunerStrip({
   );
 }
 
+// Slim single-row station switcher for mobile — keeps background visible.
+function CompactStationBar({
+  stations,
+  activeIdx,
+  onPrev,
+  onNext,
+  scanDir,
+}: {
+  stations: typeof STATIONS;
+  activeIdx: number;
+  onPrev: () => void;
+  onNext: () => void;
+  scanDir: "prev" | "next" | null;
+}) {
+  const station = stations[activeIdx];
+  const scanning = scanDir !== null;
+  return (
+    <div
+      className="flex w-full items-center gap-2 rounded-xl border border-white/10 bg-black/55 px-3 py-2 backdrop-blur-md"
+      style={{ boxShadow: `0 0 16px -6px ${station.accent}40` }}
+    >
+      <button
+        type="button"
+        onClick={onPrev}
+        disabled={activeIdx === 0}
+        aria-label="Previous station"
+        className="shrink-0 text-white/50 transition active:scale-90 disabled:opacity-20"
+      >
+        <svg viewBox="0 0 16 16" fill="currentColor" className="h-4 w-4">
+          <path d="M11 3L5 8l6 5V3z" />
+        </svg>
+      </button>
+      <div className="flex flex-1 flex-col items-center">
+        <span className="text-[7.5px] font-semibold uppercase tracking-[0.2em] text-white/30">
+          {scanning ? "scanning…" : "station"}
+        </span>
+        <span
+          className="text-[13px] font-semibold transition-all duration-300"
+          style={{
+            color: scanning ? "rgba(255,255,255,0.25)" : station.accent,
+            filter: scanning ? "blur(4px)" : "none",
+          }}
+        >
+          {station.emoji} {station.englishName}
+        </span>
+      </div>
+      <button
+        type="button"
+        onClick={onNext}
+        disabled={activeIdx === stations.length - 1}
+        aria-label="Next station"
+        className="shrink-0 text-white/50 transition active:scale-90 disabled:opacity-20"
+      >
+        <svg viewBox="0 0 16 16" fill="currentColor" className="h-4 w-4">
+          <path d="M5 3l6 5-6 5V3z" />
+        </svg>
+      </button>
+    </div>
+  );
+}
+
 export function AppShell() {
   const [stationIdx, setStationIdx] = useState(0);
   const [portrait, setPortrait] = useState(false);
@@ -286,6 +347,8 @@ export function AppShell() {
         style={{ backgroundImage: `url("${bgImage}")`, filter: scanDir ? "brightness(0.4) blur(4px)" : "none" }}
       >
         <div className="absolute inset-0 bg-gradient-to-b from-black/35 via-transparent to-black/80" />
+        {/* extra dim on mobile so background doesn't compete with content */}
+        <div className="absolute inset-0 bg-black/40 sm:hidden" />
       </div>
 
       {/* grain overlay */}
@@ -335,7 +398,7 @@ export function AppShell() {
         />
       </div>
 
-      {/* radio panel + player — stacked in portrait, side by side on sm+ */}
+      {/* mobile: slim pill; desktop: full FM tuner side-by-side with player */}
       <div
         className="z-10 flex w-full flex-col items-stretch gap-2 sm:flex-row sm:items-end"
         style={{
@@ -344,13 +407,24 @@ export function AppShell() {
           paddingRight: insetRight,
         }}
       >
-        <TunerStrip
-          stations={visibleStations}
-          activeIdx={safeIdx}
-          onPrev={() => switchStation(safeIdx - 1, "prev")}
-          onNext={() => switchStation(safeIdx + 1, "next")}
-          scanDir={scanDir}
-        />
+        <div className="sm:hidden">
+          <CompactStationBar
+            stations={visibleStations}
+            activeIdx={safeIdx}
+            onPrev={() => switchStation(safeIdx - 1, "prev")}
+            onNext={() => switchStation(safeIdx + 1, "next")}
+            scanDir={scanDir}
+          />
+        </div>
+        <div className="hidden sm:block">
+          <TunerStrip
+            stations={visibleStations}
+            activeIdx={safeIdx}
+            onPrev={() => switchStation(safeIdx - 1, "prev")}
+            onNext={() => switchStation(safeIdx + 1, "next")}
+            scanDir={scanDir}
+          />
+        </div>
         <div className="flex min-w-0 flex-1 flex-col items-center gap-1">
           <Player key={station.id} basePlaylists={station.playlists} />
           <p className="pointer-events-none select-none text-xs text-white/50">

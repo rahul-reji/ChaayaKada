@@ -824,14 +824,6 @@ export function Player({ basePlaylists }: { basePlaylists?: Playlist[] } = {}) {
   // =========================================================================
   return (
     <div className="pointer-events-auto w-full max-w-xl">
-      <div className="mb-3 flex justify-center sm:justify-start">
-        <PlaylistTabs
-          playlists={playlists}
-          activeIndex={playlistIndex}
-          onSelect={selectPlaylist}
-        />
-      </div>
-
       {/* ---------- DESKTOP: one horizontal glass pill ---------- */}
       <div className={`hidden items-center gap-4 rounded-full p-3 pr-5 sm:flex ${GLASS}`}>
         <Artwork
@@ -873,14 +865,14 @@ export function Player({ basePlaylists }: { basePlaylists?: Playlist[] } = {}) {
       </div>
 
       {/* ---------- MOBILE: stacked glass card ---------- */}
-      <div className={`flex flex-col gap-3 rounded-[26px] p-4 sm:hidden ${GLASS}`}>
+      <div className={`flex flex-col gap-2 rounded-[22px] p-3 sm:hidden ${GLASS}`}>
         {/* row 1 */}
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2">
           <Artwork
             hostRef={mobileHostRef}
             hasVideo={hasVideo && layout === "mobile"}
             playing={isPlaying}
-            vinylSize={64}
+            vinylSize={48}
             rounded="rounded-full"
             videoId={current.videoId}
           />
@@ -890,31 +882,33 @@ export function Player({ basePlaylists }: { basePlaylists?: Playlist[] } = {}) {
         {/* row 2 — full-width seek */}
         <SeekBar fraction={fraction} onScrub={onScrub} />
 
-        {/* row 3 — times left, transport centred, 44px targets */}
+        {/* row 3 — times left, transport centred, controls */}
         <div className="grid grid-cols-3 items-center">
-          <div className="flex items-center gap-1 justify-self-start text-[10.5px] tabular-nums text-white/60">
+          <div className="flex items-center gap-1 justify-self-start text-[10px] tabular-nums text-white/60">
             <span>{fmtTime(elapsed)}</span>
             <span className="text-white/30">/</span>
             <span>{fmtTime(duration)}</span>
           </div>
-          <div className="flex items-center justify-self-center gap-2">
-            <GhostButton label="Previous track" size={44} onClick={() => step(-1)}>
-              <PrevIcon className="h-6 w-6" />
+          <div className="flex items-center justify-self-center gap-1">
+            <GhostButton label="Previous track" size={36} onClick={() => step(-1)}>
+              <PrevIcon className="h-5 w-5" />
             </GhostButton>
             <PlayButton
               playing={isPlaying}
               onClick={togglePlay}
               disabled={!hasVideo}
-              size={52}
-              iconSize={24}
+              size={44}
+              iconSize={20}
             />
-            <GhostButton label="Next track" size={44} onClick={() => step(1)}>
-              <NextIcon className="h-6 w-6" />
+            <GhostButton label="Next track" size={36} onClick={() => step(1)}>
+              <NextIcon className="h-5 w-5" />
             </GhostButton>
           </div>
-          <GhostButton label="Toggle queue" size={44} onClick={() => setShowQueue((v) => !v)}>
-            <QueueIcon className="h-5 w-5" />
-          </GhostButton>
+          <div className="justify-self-end">
+            <GhostButton label="Toggle queue" size={36} onClick={() => setShowQueue((v) => !v)}>
+              <QueueIcon className="h-4 w-4" />
+            </GhostButton>
+          </div>
         </div>
       </div>
 
