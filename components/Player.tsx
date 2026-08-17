@@ -496,6 +496,7 @@ export function Player() {
 
   // Keep AudioContext alive; use real visibility state since document.visibilityState is overridden
   const audioCtxRef = useRef<AudioContext | null>(null);
+  const isInBackgroundRef = useRef(false);
   const getRealVis = () =>
     typeof (window as any).__realVisState === "function"
       ? ((window as any).__realVisState() as string)
@@ -519,7 +520,7 @@ export function Player() {
           audioCtxRef.current.resume().catch(() => {});
         }
       } catch { /* noop — unsupported browser */ }
-    } else if (getRealVis() === "visible") {
+    } else if (!isInBackgroundRef.current) {
       // Only suspend when user explicitly paused on a visible page
       audioCtxRef.current?.suspend().catch(() => {});
     }
@@ -797,26 +798,19 @@ export function Player() {
     navigator.mediaSession.playbackState = isPlaying ? "playing" : "paused";
   }, [isPlaying]);
 
-  // Fallback resume in case YouTube still pauses; uses real visibility (not the overridden one)
+  // Use __vischange (real visibility) instead of visibilitychange (always "visible" due to YT override)
   useEffect(() => {
-    let wasPlayingBeforeHide = false;
-
-    const onVisibility = () => {
-      const realHidden = getRealVis() === "hidden";
-      if (realHidden) {
-        wasPlayingBeforeHide = restoreRef.current.wasPlaying;
-      } else {
-        if (wasPlayingBeforeHide) {
-          try { ytRef.current?.playVideo(); } catch { /* noop */ }
-        }
-        wasPlayingBeforeHide = false;
+    const onVis = (e: Event) => {
+      const hidden = (e as CustomEvent).detail?.hidden as boolean;
+      isInBackgroundRef.current = hidden;
+      if (!hidden && restoreRef.current.wasPlaying) {
+        // Returned to foreground while should be playing — ensure YouTube is running
+        audioCtxRef.current?.resume().catch(() => {});
+        try { ytRef.current?.playVideo(); } catch { /* noop */ }
       }
     };
-
-    document.addEventListener("visibilitychange", onVisibility);
-    return () => {
-      document.removeEventListener("visibilitychange", onVisibility);
-    };
+    document.addEventListener("__vischange", onVis as EventListener);
+    return () => document.removeEventListener("__vischange", onVis as EventListener);
   }, []);
 
   const fraction = duration > 0 ? elapsed / duration : 0;

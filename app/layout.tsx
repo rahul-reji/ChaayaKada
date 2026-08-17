@@ -33,8 +33,8 @@ export default function RootLayout({
   return (
     <html lang="en">
       <head>
-        {/* Intercept Page Visibility API before YouTube loads — keeps YT from auto-pausing on minimize */}
-        <script dangerouslySetInnerHTML={{__html: `(function(){var d=Object.getOwnPropertyDescriptor(Document.prototype,'visibilityState')||Object.getOwnPropertyDescriptor(document,'visibilityState');if(d&&d.get){window.__realVisState=d.get.bind(document);}try{Object.defineProperty(document,'visibilityState',{get:function(){return'visible';},configurable:true});Object.defineProperty(document,'hidden',{get:function(){return false;},configurable:true});}catch(e){}})();`}} />
+        {/* Intercept Page Visibility API + addEventListener before YouTube loads so YT never auto-pauses on minimize */}
+        <script dangerouslySetInnerHTML={{__html: `(function(){var d=Object.getOwnPropertyDescriptor(Document.prototype,'visibilityState')||Object.getOwnPropertyDescriptor(document,'visibilityState');if(d&&d.get){window.__realVisState=d.get.bind(document);}try{Object.defineProperty(document,'visibilityState',{get:function(){return'visible';},configurable:true});Object.defineProperty(document,'hidden',{get:function(){return false;},configurable:true});}catch(e){}var orig=document.addEventListener.bind(document);document.addEventListener=function(type,fn,opts){if(type!=='visibilitychange')return orig(type,fn,opts);return orig('visibilitychange',function(e){if(window.__realVisState&&window.__realVisState()==='hidden')return;fn.call(this,e);},opts);};orig('visibilitychange',function(){document.dispatchEvent(new CustomEvent('__vischange',{detail:{hidden:!!(window.__realVisState&&window.__realVisState()==='hidden')}}));},true);})();`}} />
       </head>
       <body>
         <PwaRegister />
