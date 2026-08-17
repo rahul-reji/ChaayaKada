@@ -8,6 +8,7 @@ export function RequestModal({ open, onClose }: { open: boolean; onClose: () => 
   const [title, setTitle] = useState("");
   const [artist, setArtist] = useState("");
   const [note, setNote] = useState("");
+  const [youtubeUrl, setYoutubeUrl] = useState("");
   const [status, setStatus] = useState<Status>("idle");
 
   async function submit(e: React.FormEvent) {
@@ -17,14 +18,14 @@ export function RequestModal({ open, onClose }: { open: boolean; onClose: () => 
     const res = await fetch("/api/request", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ title: title.trim(), artist: artist.trim(), note: note.trim() }),
+      body: JSON.stringify({ title: title.trim(), artist: artist.trim(), note: note.trim(), youtubeUrl: youtubeUrl.trim() }),
     }).catch(() => null);
     setStatus(res?.ok ? "success" : "error");
   }
 
   function close() {
     if (status === "loading") return;
-    setTitle(""); setArtist(""); setNote(""); setStatus("idle");
+    setTitle(""); setArtist(""); setNote(""); setYoutubeUrl(""); setStatus("idle");
     onClose();
   }
 
@@ -113,6 +114,18 @@ export function RequestModal({ open, onClose }: { open: boolean; onClose: () => 
                   rows={2}
                   className={`${inputCls} resize-none`}
                 />
+              </div>
+              <div>
+                <label className="mb-1 block text-xs font-medium text-white/60">YouTube link <span className="text-white/30">(optional)</span></label>
+                <input
+                  value={youtubeUrl}
+                  onChange={(e) => setYoutubeUrl(e.target.value)}
+                  onKeyDown={(e) => e.key === " " && e.stopPropagation()}
+                  placeholder="https://youtube.com/watch?v=..."
+                  maxLength={200}
+                  className={inputCls}
+                />
+                <p className="mt-1 text-[11px] text-white/30">Helps us find the exact version you want</p>
               </div>
             </div>
 

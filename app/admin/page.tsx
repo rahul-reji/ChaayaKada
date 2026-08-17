@@ -12,6 +12,7 @@ type SongRequest = {
   status: "pending" | "approved" | "rejected";
   videoId?: string;
   playlistId?: string;
+  youtubeVideoId?: string;
 };
 
 type ApproveState = { videoId: string; playlistId: string; officialTitle?: string; officialArtist?: string };
@@ -224,7 +225,7 @@ export default function AdminPage() {
 
         <div className="space-y-3">
           {pending.map((req) => {
-            const f = approveFields[req.id] ?? { videoId: "", playlistId: "" };
+            const f = approveFields[req.id] ?? { videoId: req.youtubeVideoId ?? "", playlistId: "" };
             const dupes = findDuplicates(req.title, requests.filter((r) => r.status === "approved"));
             return (
               <div key={req.id} className="rounded-xl border border-white/10 bg-white/5 p-4">

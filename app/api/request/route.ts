@@ -6,6 +6,12 @@ export async function POST(req: Request) {
   const title = typeof body?.title === "string" ? body.title.trim().slice(0, 120) : "";
   const artist = typeof body?.artist === "string" ? body.artist.trim().slice(0, 80) : "";
   const note = typeof body?.note === "string" ? body.note.trim().slice(0, 300) : "";
+  const rawYtUrl = typeof body?.youtubeUrl === "string" ? body.youtubeUrl.trim() : "";
+  // Extract and validate 11-char YouTube video ID
+  const ytVidId = rawYtUrl
+    .replace(/.*[?&]v=([a-zA-Z0-9_-]{11}).*/, "$1")
+    .replace(/.*youtu\.be\/([a-zA-Z0-9_-]{11}).*/, "$1");
+  const youtubeVideoId = /^[a-zA-Z0-9_-]{11}$/.test(ytVidId) ? ytVidId : "";
 
   if (!title) return NextResponse.json({ error: "title required" }, { status: 400 });
 
@@ -13,7 +19,7 @@ export async function POST(req: Request) {
   const timestamp = Date.now();
 
   await redis.pipeline()
-    .set(`ck:req:${id}`, JSON.stringify({ id, title, artist, note, timestamp, status: "pending" }))
+    .set(`ck:req:${id}`, JSON.stringify({ id, title, artist, note, youtubeVideoId, timestamp, status: "pending" }))
     .zadd("ck:req_ids", { score: timestamp, member: id })
     .exec();
 
