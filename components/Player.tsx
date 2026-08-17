@@ -494,8 +494,12 @@ export function Player() {
   const desktopHostRef = useRef<HTMLDivElement | null>(null);
   const mobileHostRef = useRef<HTMLDivElement | null>(null);
 
-  // Silent AudioContext loop — keeps Android from suspending the tab during background play
+  // Keep AudioContext alive; use real visibility state since document.visibilityState is overridden
   const audioCtxRef = useRef<AudioContext | null>(null);
+  const getRealVis = () =>
+    typeof (window as any).__realVisState === "function"
+      ? ((window as any).__realVisState() as string)
+      : "visible";
   useEffect(() => {
     if (isPlaying) {
       try {
@@ -515,8 +519,8 @@ export function Player() {
           audioCtxRef.current.resume().catch(() => {});
         }
       } catch { /* noop — unsupported browser */ }
-    } else if (document.visibilityState === "visible") {
-      // Only suspend when user explicitly paused; keep alive while backgrounded
+    } else if (getRealVis() === "visible") {
+      // Only suspend when user explicitly paused on a visible page
       audioCtxRef.current?.suspend().catch(() => {});
     }
   }, [isPlaying]);
@@ -793,23 +797,15 @@ export function Player() {
     navigator.mediaSession.playbackState = isPlaying ? "playing" : "paused";
   }, [isPlaying]);
 
-  // Keep playing across minimize/screen-off: capture wasPlaying before YT auto-pause
-  // corrupts restoreRef, retry immediately after hide, and resume on return.
+  // Fallback resume in case YouTube still pauses; uses real visibility (not the overridden one)
   useEffect(() => {
     let wasPlayingBeforeHide = false;
-    let retryTimer: ReturnType<typeof setTimeout> | null = null;
 
     const onVisibility = () => {
-      if (document.visibilityState === "hidden") {
+      const realHidden = getRealVis() === "hidden";
+      if (realHidden) {
         wasPlayingBeforeHide = restoreRef.current.wasPlaying;
-        if (wasPlayingBeforeHide) {
-          // YouTube auto-pauses ~50ms after hide; retry resuming after that
-          retryTimer = setTimeout(() => {
-            try { ytRef.current?.playVideo(); } catch { /* noop */ }
-          }, 200);
-        }
       } else {
-        if (retryTimer) { clearTimeout(retryTimer); retryTimer = null; }
         if (wasPlayingBeforeHide) {
           try { ytRef.current?.playVideo(); } catch { /* noop */ }
         }
@@ -820,7 +816,6 @@ export function Player() {
     document.addEventListener("visibilitychange", onVisibility);
     return () => {
       document.removeEventListener("visibilitychange", onVisibility);
-      if (retryTimer) clearTimeout(retryTimer);
     };
   }, []);
 

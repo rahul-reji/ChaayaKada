@@ -32,6 +32,10 @@ export default function RootLayout({
 }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="en">
+      <head>
+        {/* Intercept Page Visibility API before YouTube loads — keeps YT from auto-pausing on minimize */}
+        <script dangerouslySetInnerHTML={{__html: `(function(){var d=Object.getOwnPropertyDescriptor(Document.prototype,'visibilityState')||Object.getOwnPropertyDescriptor(document,'visibilityState');if(d&&d.get){window.__realVisState=d.get.bind(document);}try{Object.defineProperty(document,'visibilityState',{get:function(){return'visible';},configurable:true});Object.defineProperty(document,'hidden',{get:function(){return false;},configurable:true});}catch(e){}})();`}} />
+      </head>
       <body>
         <PwaRegister />
         {children}
