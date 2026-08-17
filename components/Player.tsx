@@ -515,7 +515,8 @@ export function Player() {
           audioCtxRef.current.resume().catch(() => {});
         }
       } catch { /* noop — unsupported browser */ }
-    } else {
+    } else if (document.visibilityState === "visible") {
+      // Only suspend when user explicitly paused; keep alive while backgrounded
       audioCtxRef.current?.suspend().catch(() => {});
     }
   }, [isPlaying]);
@@ -792,14 +793,35 @@ export function Player() {
     navigator.mediaSession.playbackState = isPlaying ? "playing" : "paused";
   }, [isPlaying]);
 
-  // If the YT iframe auto-paused when the app was backgrounded, resume on return
+  // Keep playing across minimize/screen-off: capture wasPlaying before YT auto-pause
+  // corrupts restoreRef, retry immediately after hide, and resume on return.
   useEffect(() => {
-    const onVisible = () => {
-      if (document.visibilityState !== "visible" || !restoreRef.current.wasPlaying) return;
-      try { ytRef.current?.playVideo(); } catch { /* noop */ }
+    let wasPlayingBeforeHide = false;
+    let retryTimer: ReturnType<typeof setTimeout> | null = null;
+
+    const onVisibility = () => {
+      if (document.visibilityState === "hidden") {
+        wasPlayingBeforeHide = restoreRef.current.wasPlaying;
+        if (wasPlayingBeforeHide) {
+          // YouTube auto-pauses ~50ms after hide; retry resuming after that
+          retryTimer = setTimeout(() => {
+            try { ytRef.current?.playVideo(); } catch { /* noop */ }
+          }, 200);
+        }
+      } else {
+        if (retryTimer) { clearTimeout(retryTimer); retryTimer = null; }
+        if (wasPlayingBeforeHide) {
+          try { ytRef.current?.playVideo(); } catch { /* noop */ }
+        }
+        wasPlayingBeforeHide = false;
+      }
     };
-    document.addEventListener("visibilitychange", onVisible);
-    return () => document.removeEventListener("visibilitychange", onVisible);
+
+    document.addEventListener("visibilitychange", onVisibility);
+    return () => {
+      document.removeEventListener("visibilitychange", onVisibility);
+      if (retryTimer) clearTimeout(retryTimer);
+    };
   }, []);
 
   const fraction = duration > 0 ? elapsed / duration : 0;
