@@ -446,7 +446,8 @@ function PlaylistTabs({
 // ===========================================================================
 // <Player/> — the engine
 // ===========================================================================
-export function Player() {
+export function Player({ basePlaylists }: { basePlaylists?: Playlist[] } = {}) {
+  const BASE = basePlaylists ?? PLAYLISTS;
   const [playlistIndex, setPlaylistIndex] = useState(0);
   const [trackIndex, setTrackIndex] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -455,7 +456,7 @@ export function Player() {
   const [duration, setDuration] = useState(0);
   const [layout, setLayout] = useState<"desktop" | "mobile">("desktop");
   const [showQueue, setShowQueue] = useState(false);
-  const [playlists, setPlaylists] = useState(PLAYLISTS);
+  const [playlists, setPlaylists] = useState(() => BASE);
 
   // merge in any admin-approved requests from Redis on mount
   useEffect(() => {
@@ -463,7 +464,7 @@ export function Player() {
       .then((r) => (r.ok ? r.json() : {}))
       .then((extra: Record<string, Track[]>) => {
         setPlaylists(
-          PLAYLISTS.map((pl) => ({
+          BASE.map((pl) => ({
             ...pl,
             tracks: [...pl.tracks, ...(extra[pl.id] ?? [])],
           }))
@@ -475,7 +476,7 @@ export function Player() {
   // randomize after hydration to avoid SSR mismatch
   useEffect(() => {
     const all: { pi: number; ti: number }[] = [];
-    PLAYLISTS.forEach((pl, pi) =>
+    BASE.forEach((pl, pi) =>
       pl.tracks.forEach((t, ti) => { if (t.videoId) all.push({ pi, ti }); })
     );
     if (!all.length) return;
