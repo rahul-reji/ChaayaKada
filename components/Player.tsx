@@ -320,34 +320,95 @@ function QueuePanel({
   currentTrackIndex: number;
   onSelect: (playlistIndex: number, trackIndex: number) => void;
 }) {
+  const [query, setQuery] = useState("");
+  const q = query.trim().toLowerCase();
+
+  const filtered = q
+    ? playlists.flatMap((pl, pi) =>
+        pl.tracks
+          .map((t, ti) => ({ t, ti, pi, plName: pl.name }))
+          .filter(({ t }) =>
+            t.title.toLowerCase().includes(q) || t.artist.toLowerCase().includes(q)
+          )
+      )
+    : null;
+
   return (
-    <div className={`mt-2 max-h-60 overflow-y-auto rounded-2xl p-1.5 ${GLASS}`}>
-      {playlists.map((pl, pi) => (
-        <div key={pl.id}>
-          <p className="px-3 pt-2 pb-1 text-[10px] font-semibold uppercase tracking-widest text-white/35">
-            {pl.name}
-          </p>
-          {pl.tracks.map((t, ti) => {
-            const isActive = pi === currentPlaylistIndex && ti === currentTrackIndex;
-            return (
-              <button
-                key={t.id}
-                type="button"
-                onClick={() => onSelect(pi, ti)}
-                className={
-                  "flex w-full items-baseline justify-between rounded-xl px-3 py-2 text-left transition hover:bg-white/10 " +
-                  (isActive ? "bg-white/10" : "")
-                }
-              >
-                <span className={"truncate text-[13px] font-medium " + (isActive ? "text-accent" : "text-white/85")}>
-                  {t.title}
-                </span>
-                <span className="ml-4 shrink-0 text-[11px] text-white/45">{t.artist}</span>
-              </button>
-            );
-          })}
-        </div>
-      ))}
+    <div className={`mt-2 flex max-h-64 flex-col rounded-2xl ${GLASS}`}>
+      {/* search bar */}
+      <div className="flex shrink-0 items-center gap-2 border-b border-white/8 px-3 py-2">
+        <svg className="h-3.5 w-3.5 shrink-0 text-white/35" viewBox="0 0 20 20" fill="currentColor" aria-hidden>
+          <path fillRule="evenodd" d="M9 3.5a5.5 5.5 0 100 11 5.5 5.5 0 000-11zM2 9a7 7 0 1112.452 4.391l3.328 3.329a.75.75 0 11-1.06 1.06l-3.329-3.328A7 7 0 012 9z" clipRule="evenodd" />
+        </svg>
+        <input
+          type="text"
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          placeholder="Search songs…"
+          className="min-w-0 flex-1 bg-transparent text-[12px] text-white placeholder-white/30 outline-none"
+        />
+        {query && (
+          <button type="button" onClick={() => setQuery("")} className="shrink-0 text-white/30 hover:text-white/70">
+            ✕
+          </button>
+        )}
+      </div>
+
+      {/* track list */}
+      <div className="overflow-y-auto p-1.5">
+        {filtered ? (
+          filtered.length === 0 ? (
+            <p className="px-3 py-4 text-center text-[12px] text-white/35">No results</p>
+          ) : (
+            filtered.map(({ t, ti, pi, plName }) => {
+              const isActive = pi === currentPlaylistIndex && ti === currentTrackIndex;
+              return (
+                <button
+                  key={t.id}
+                  type="button"
+                  onClick={() => onSelect(pi, ti)}
+                  className={
+                    "flex w-full items-baseline justify-between rounded-xl px-3 py-2 text-left transition hover:bg-white/10 " +
+                    (isActive ? "bg-white/10" : "")
+                  }
+                >
+                  <span className={"truncate text-[13px] font-medium " + (isActive ? "text-accent" : "text-white/85")}>
+                    {t.title}
+                  </span>
+                  <span className="ml-4 shrink-0 text-[11px] text-white/40">{plName}</span>
+                </button>
+              );
+            })
+          )
+        ) : (
+          playlists.map((pl, pi) => (
+            <div key={pl.id}>
+              <p className="px-3 pt-2 pb-1 text-[10px] font-semibold uppercase tracking-widest text-white/35">
+                {pl.name}
+              </p>
+              {pl.tracks.map((t, ti) => {
+                const isActive = pi === currentPlaylistIndex && ti === currentTrackIndex;
+                return (
+                  <button
+                    key={t.id}
+                    type="button"
+                    onClick={() => onSelect(pi, ti)}
+                    className={
+                      "flex w-full items-baseline justify-between rounded-xl px-3 py-2 text-left transition hover:bg-white/10 " +
+                      (isActive ? "bg-white/10" : "")
+                    }
+                  >
+                    <span className={"truncate text-[13px] font-medium " + (isActive ? "text-accent" : "text-white/85")}>
+                      {t.title}
+                    </span>
+                    <span className="ml-4 shrink-0 text-[11px] text-white/45">{t.artist}</span>
+                  </button>
+                );
+              })}
+            </div>
+          ))
+        )}
+      </div>
     </div>
   );
 }
