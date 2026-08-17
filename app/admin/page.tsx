@@ -272,11 +272,9 @@ export default function AdminPage() {
                       type="button"
                       onClick={() => toggleFlag(flag, !on)}
                       aria-label={on ? "Disable" : "Enable"}
-                      className={`relative h-6 w-11 overflow-hidden rounded-full transition-colors ${on ? "bg-green-500" : "bg-white/15"}`}
+                      className={`rounded-lg px-3 py-1 text-xs font-semibold transition-colors ${on ? "bg-green-500/20 text-green-400 ring-1 ring-green-500/40" : "bg-red-500/20 text-red-400 ring-1 ring-red-500/40"}`}
                     >
-                      <span
-                        className={`absolute top-0.5 h-5 w-5 rounded-full bg-white shadow-sm transition-transform ${on ? "translate-x-5" : "translate-x-0.5"}`}
-                      />
+                      {on ? "ON" : "OFF"}
                     </button>
                   </div>
                 </div>
