@@ -50,19 +50,28 @@ export async function DELETE(req: Request) {
   const { playlistId, trackId } = await req.json().catch(() => ({}));
   if (!playlistId || !trackId) return NextResponse.json({ error: "missing fields" }, { status: 400 });
 
-  const items: string[] = await redis.lrange(`ck:extra:${playlistId}`, 0, -1);
-  const kept = items.filter((item) => {
-    try {
-      const parsed = typeof item === "string" ? JSON.parse(item) : item;
-      return parsed.id !== trackId;
-    } catch { return true; }
-  });
+  // when playlistId is "chayakada", the track may live under a legacy key
+  const keysToSearch =
+    playlistId === "chayakada"
+      ? [playlistId, ...LEGACY_CHAYAKADA_IDS]
+      : [playlistId];
 
-  if (kept.length === items.length) return NextResponse.json({ error: "track not found" }, { status: 404 });
+  for (const key of keysToSearch) {
+    const items: string[] = await redis.lrange(`ck:extra:${key}`, 0, -1);
+    const kept = items.filter((item) => {
+      try {
+        const parsed = typeof item === "string" ? JSON.parse(item) : item;
+        return parsed.id !== trackId;
+      } catch { return true; }
+    });
 
-  const pipe = redis.pipeline().del(`ck:extra:${playlistId}`);
-  if (kept.length > 0) pipe.rpush(`ck:extra:${playlistId}`, ...kept);
-  await pipe.exec();
+    if (kept.length < items.length) {
+      const pipe = redis.pipeline().del(`ck:extra:${key}`);
+      if (kept.length > 0) pipe.rpush(`ck:extra:${key}`, ...kept);
+      await pipe.exec();
+      return NextResponse.json({ ok: true });
+    }
+  }
 
-  return NextResponse.json({ ok: true });
+  return NextResponse.json({ error: "track not found" }, { status: 404 });
 }
