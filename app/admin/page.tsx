@@ -56,7 +56,6 @@ export default function AdminPage() {
   const [songsLoading, setSongsLoading] = useState(false);
   const [deleteStatus, setDeleteStatus] = useState<Record<string, string>>({});
   const [expandedStations, setExpandedStations] = useState<Record<string, boolean>>({});
-  const [expandedStations, setExpandedStations] = useState<Record<string, boolean>>({}); // tracks which built-in lists are open
 
   const load = useCallback(async (adminKey: string) => {
     setLoading(true);
