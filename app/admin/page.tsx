@@ -56,6 +56,7 @@ export default function AdminPage() {
   const [songsLoading, setSongsLoading] = useState(false);
   const [deleteStatus, setDeleteStatus] = useState<Record<string, string>>({});
   const [expandedStations, setExpandedStations] = useState<Record<string, boolean>>({});
+  const [stationOpen, setStationOpen] = useState<Record<string, boolean>>({}); // all stations collapsed by default
 
   const load = useCallback(async (adminKey: string) => {
     setLoading(true);
@@ -223,54 +224,68 @@ export default function AdminPage() {
             {songsLoading && <p className="text-sm text-white/50">Loading…</p>}
             {!songsLoading && songs?.map((st) => {
               const builtInTracks = STATIONS.find((s) => s.id === st.id)?.playlists.flatMap((pl) => pl.tracks) ?? [];
-              const expanded = !!expandedStations[st.id];
+              const builtInExpanded = !!expandedStations[st.id];
+              const open = !!stationOpen[st.id];
+              const extraCount = st.playlists.reduce((n, pl) => n + pl.extraTracks.length, 0);
               return (
-                <div key={st.id} className="rounded-xl border border-white/10 bg-white/5 p-4">
-                  <h2 className="mb-3 text-sm font-semibold">{st.emoji} {st.name}</h2>
-                  {st.playlists.map((pl) => (
-                    <div key={pl.id} className="space-y-2">
-                      <button type="button"
-                        onClick={() => setExpandedStations((s) => ({ ...s, [st.id]: !s[st.id] }))}
-                        className="flex w-full items-center justify-between rounded-lg border border-white/8 bg-white/[0.03] px-3 py-2 text-left">
-                        <span className="text-xs text-white/50">{pl.staticCount} built-in songs</span>
-                        <span className="text-[10px] text-white/30">{expanded ? "▲ hide" : "▼ show"}</span>
-                      </button>
-                      {expanded && (
-                        <div className="max-h-64 space-y-1 overflow-y-auto">
-                          {builtInTracks.map((t) => (
-                            <div key={t.id} className="flex items-center gap-3 rounded-lg border border-white/8 bg-white/[0.03] px-3 py-2">
-                              <div className="min-w-0 flex-1">
-                                <p className="truncate text-sm">{t.title}</p>
-                                {t.artist && <p className="truncate text-xs text-white/45">{t.artist}</p>}
-                              </div>
-                              <span className="shrink-0 text-[10px] text-white/20">built-in</span>
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                      {pl.extraTracks.length > 0 && (
-                        <p className="text-xs text-white/40">{pl.extraTracks.length} added via requests</p>
-                      )}
-                      {pl.extraTracks.length === 0 && <p className="text-xs italic text-white/25">No extra songs yet.</p>}
-                      <div className="space-y-1">
-                        {(pl.extraTracks as ExtraTrack[]).map((t) => (
-                          <div key={t.id} className="flex items-center justify-between gap-3 rounded-lg border border-white/8 bg-white/[0.03] px-3 py-2">
-                            <div className="min-w-0">
-                              <p className="truncate text-sm">{t.title}</p>
-                              {t.artist && <p className="truncate text-xs text-white/45">{t.artist}</p>}
-                            </div>
-                            <div className="flex shrink-0 items-center gap-2">
-                              {deleteStatus[t.id] && <span className="text-xs text-white/40">{deleteStatus[t.id]}</span>}
-                              <button onClick={() => deleteTrack(pl.id, t.id)}
-                                className="rounded-md border border-red-500/20 bg-red-500/10 px-2 py-1 text-[11px] text-red-400 transition hover:bg-red-500/20">
-                                Remove
-                              </button>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
+                <div key={st.id} className="rounded-xl border border-white/10 bg-white/5">
+                  <button type="button"
+                    onClick={() => setStationOpen((s) => ({ ...s, [st.id]: !s[st.id] }))}
+                    className="flex w-full items-center justify-between px-4 py-3 text-left">
+                    <span className="text-sm font-semibold">{st.emoji} {st.name}</span>
+                    <div className="flex items-center gap-2">
+                      {extraCount > 0 && <span className="text-[10px] text-white/40">{extraCount} added</span>}
+                      <span className="text-[10px] text-white/30">{open ? "▲" : "▼"}</span>
                     </div>
-                  ))}
+                  </button>
+                  {open && (
+                    <div className="border-t border-white/8 px-4 pb-4 pt-3">
+                      {st.playlists.map((pl) => (
+                        <div key={pl.id} className="space-y-2">
+                          <button type="button"
+                            onClick={() => setExpandedStations((s) => ({ ...s, [st.id]: !s[st.id] }))}
+                            className="flex w-full items-center justify-between rounded-lg border border-white/8 bg-white/[0.03] px-3 py-2 text-left">
+                            <span className="text-xs text-white/50">{pl.staticCount} built-in songs</span>
+                            <span className="text-[10px] text-white/30">{builtInExpanded ? "▲ hide" : "▼ show"}</span>
+                          </button>
+                          {builtInExpanded && (
+                            <div className="max-h-64 space-y-1 overflow-y-auto">
+                              {builtInTracks.map((t) => (
+                                <div key={t.id} className="flex items-center gap-3 rounded-lg border border-white/8 bg-white/[0.03] px-3 py-2">
+                                  <div className="min-w-0 flex-1">
+                                    <p className="truncate text-sm">{t.title}</p>
+                                    {t.artist && <p className="truncate text-xs text-white/45">{t.artist}</p>}
+                                  </div>
+                                  <span className="shrink-0 text-[10px] text-white/20">built-in</span>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                          {pl.extraTracks.length > 0 && (
+                            <p className="text-xs text-white/40">{pl.extraTracks.length} added via requests</p>
+                          )}
+                          {pl.extraTracks.length === 0 && <p className="text-xs italic text-white/25">No extra songs yet.</p>}
+                          <div className="space-y-1">
+                            {(pl.extraTracks as ExtraTrack[]).map((t) => (
+                              <div key={t.id} className="flex items-center justify-between gap-3 rounded-lg border border-white/8 bg-white/[0.03] px-3 py-2">
+                                <div className="min-w-0">
+                                  <p className="truncate text-sm">{t.title}</p>
+                                  {t.artist && <p className="truncate text-xs text-white/45">{t.artist}</p>}
+                                </div>
+                                <div className="flex shrink-0 items-center gap-2">
+                                  {deleteStatus[t.id] && <span className="text-xs text-white/40">{deleteStatus[t.id]}</span>}
+                                  <button onClick={() => deleteTrack(pl.id, t.id)}
+                                    className="rounded-md border border-red-500/20 bg-red-500/10 px-2 py-1 text-[11px] text-red-400 transition hover:bg-red-500/20">
+                                    Remove
+                                  </button>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
               );
             })}
