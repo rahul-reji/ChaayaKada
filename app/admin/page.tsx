@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { PLAYLISTS } from "@/lib/tracks";
 import { STATIONS } from "@/lib/stations";
 
@@ -68,6 +68,7 @@ export default function AdminPage() {
     try { data = await res.json(); } catch { setLoginError("Invalid server response � try again"); setLoading(false); return; }
     setRequests(data);
     setAuthed(true);
+    localStorage.setItem("ck_admin_key", adminKey);
     setLoading(false);
     fetch("/api/flags").then((r) => (r.ok ? r.json() : {})).then((d: Record<string, boolean>) => setFlags(d)).catch(() => {});
   }, []);
@@ -78,6 +79,19 @@ export default function AdminPage() {
     if (res?.ok) setSongs(await res.json().catch(() => []));
     setSongsLoading(false);
   }, []);
+
+  useEffect(() => {
+    const saved = localStorage.getItem("ck_admin_key");
+    if (saved) { setKey(saved); load(saved); }
+  }, [load]);
+
+  function logout() {
+    localStorage.removeItem("ck_admin_key");
+    setAuthed(false);
+    setKey("");
+    setRequests([]);
+    setSongs(null);
+  }
 
   async function deleteTrack(playlistId: string, trackId: string) {
     setDeleteStatus((s) => ({ ...s, [trackId]: "…" }));
@@ -181,7 +195,7 @@ export default function AdminPage() {
           />
           {loginError && <p className="text-sm text-red-400">{loginError}</p>}
           <button type="submit" disabled={loading} className="w-full rounded-xl border border-amber-500/30 bg-amber-500/15 py-3.5 text-base font-medium text-amber-300 disabled:opacity-50">
-            {loading ? "Checking�" : "Enter"}
+            {loading ? "Checking…" : "Enter"}
           </button>
         </form>
       </main>
@@ -210,10 +224,16 @@ export default function AdminPage() {
             </button>
           ))}
         </div>
-        <button onClick={() => section === "requests" ? load(key) : loadSongs(key)}
-          className="rounded-lg border border-white/10 bg-white/5 px-3 py-1.5 text-sm text-white/60 transition active:bg-white/15">
-          ↻ Refresh
-        </button>
+        <div className="flex items-center gap-2">
+          <button onClick={() => section === "requests" ? load(key) : loadSongs(key)}
+            className="rounded-lg border border-white/10 bg-white/5 px-3 py-1.5 text-sm text-white/60 transition active:bg-white/15">
+            ↻ Refresh
+          </button>
+          <button onClick={logout}
+            className="rounded-lg border border-white/10 bg-white/5 px-3 py-1.5 text-sm text-white/40 transition active:bg-white/15">
+            Logout
+          </button>
+        </div>
       </div>
 
       <div className="mx-auto max-w-2xl p-4">
