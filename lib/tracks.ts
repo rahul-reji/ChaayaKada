@@ -364,7 +364,5 @@ const nineties: Track[] = [
   }
 ];
 export const PLAYLISTS: Playlist[] = [
-  { id: "golden-voices", name: "Golden Voices", tracks: goldenVoices },
-  { id: "melody-makers", name: "Melody Makers", tracks: melodyMakers },
-  { id: "the-nineties", name: "The Nineties", tracks: nineties },
+  { id: "chayakada", name: "Chayakada", tracks: [...goldenVoices, ...melodyMakers, ...nineties] },
 ];

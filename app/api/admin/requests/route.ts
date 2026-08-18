@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { redis } from "@/lib/redis";
-import { PLAYLISTS } from "@/lib/tracks";
+import { STATIONS } from "@/lib/stations";
+
+const ALL_PLAYLISTS = STATIONS.flatMap((s) => s.playlists);
 
 type SongRequest = {
   id: string;
@@ -53,7 +55,7 @@ export async function PATCH(req: Request) {
   if (action === "approve") {
     if (!videoId || !playlistId)
       return NextResponse.json({ error: "videoId and playlistId required" }, { status: 400 });
-    if (!PLAYLISTS.find((p) => p.id === playlistId))
+    if (!ALL_PLAYLISTS.find((p) => p.id === playlistId))
       return NextResponse.json({ error: "invalid playlist" }, { status: 400 });
 
     // accepts full YouTube URLs or bare 11-char IDs
