@@ -55,6 +55,8 @@ export default function AdminPage() {
   const [songs, setSongs] = useState<StationSongs[] | null>(null);
   const [songsLoading, setSongsLoading] = useState(false);
   const [deleteStatus, setDeleteStatus] = useState<Record<string, string>>({});
+  const [expandedStations, setExpandedStations] = useState<Record<string, boolean>>({});
+  const [expandedStations, setExpandedStations] = useState<Record<string, boolean>>({}); // tracks which built-in lists are open
 
   const load = useCallback(async (adminKey: string) => {
     setLoading(true);
@@ -78,35 +80,35 @@ export default function AdminPage() {
   }, []);
 
   async function deleteTrack(playlistId: string, trackId: string) {
-    setDeleteStatus((s) => ({ ...s, [trackId]: "�" }));
+    setDeleteStatus((s) => ({ ...s, [trackId]: "…" }));
     const res = await fetch("/api/admin/songs", {
       method: "DELETE",
       headers: { "Content-Type": "application/json", "x-admin-key": key },
       body: JSON.stringify({ playlistId, trackId }),
     }).catch(() => null);
-    if (res?.ok) { setDeleteStatus((s) => ({ ...s, [trackId]: "?" })); loadSongs(key); }
-    else setDeleteStatus((s) => ({ ...s, [trackId]: "? failed" }));
+    if (res?.ok) { setDeleteStatus((s) => ({ ...s, [trackId]: "✓" })); loadSongs(key); }
+    else setDeleteStatus((s) => ({ ...s, [trackId]: "✗ failed" }));
   }
 
   async function toggleFlag(flag: string, enabled: boolean) {
-    setFlagStatus((s) => ({ ...s, [flag]: "saving�" }));
+    setFlagStatus((s) => ({ ...s, [flag]: "saving…" }));
     const res = await fetch("/api/admin/flags", {
       method: "PATCH",
       headers: { "Content-Type": "application/json", "x-admin-key": key },
       body: JSON.stringify({ flag, enabled }),
     }).catch(() => null);
     if (res?.ok) { setFlags((f) => ({ ...f, [flag]: enabled })); setFlagStatus((s) => ({ ...s, [flag]: "" })); }
-    else setFlagStatus((s) => ({ ...s, [flag]: "? failed" }));
+    else setFlagStatus((s) => ({ ...s, [flag]: "✗ failed" }));
   }
 
   async function autoFill(id: string, title: string, artist: string) {
-    setActionStatus((s) => ({ ...s, [id]: "Searching YouTube�" }));
+    setActionStatus((s) => ({ ...s, [id]: "Searching YouTube…" }));
     const res = await fetch("/api/admin/fetch-video-id", {
       method: "POST",
       headers: { "Content-Type": "application/json", "x-admin-key": key },
       body: JSON.stringify({ title, artist }),
     }).catch(() => null);
-    if (!res?.ok) { setActionStatus((s) => ({ ...s, [id]: "? Search failed" })); return; }
+    if (!res?.ok) { setActionStatus((s) => ({ ...s, [id]: "✗ Search failed" })); return;}
     const { videoId, title: officialTitle, channelTitle: officialArtist } = await res.json();
     if (videoId) {
       setApproveFields((s) => ({ ...s, [id]: { ...(s[id] ?? { videoId: "", playlistId: "" }), videoId, ...(officialTitle && { officialTitle }), ...(officialArtist && { officialArtist }) } }));
@@ -120,14 +122,14 @@ export default function AdminPage() {
     const f = approveFields[id] ?? { videoId: "", playlistId: "" };
     const playlistId = STATIONS.find((s) => s.id === stationId)?.playlists[0]?.id ?? "chayakada";
     if (act === "approve" && !f.videoId) { setActionStatus((s) => ({ ...s, [id]: "Fill in video ID first" })); return; }
-    setActionStatus((s) => ({ ...s, [id]: "�" }));
+    setActionStatus((s) => ({ ...s, [id]: "…" }));
     const res = await fetch("/api/admin/requests", {
       method: "PATCH",
       headers: { "Content-Type": "application/json", "x-admin-key": key },
       body: JSON.stringify({ id, action: act, ...f, playlistId }),
     }).catch(() => null);
     if (res?.ok) {
-      setActionStatus((s) => ({ ...s, [id]: act === "approve" ? "? Added to playlist!" : "? Rejected" }));
+      setActionStatus((s) => ({ ...s, [id]: act === "approve" ? "✓ Added to playlist!" : "✗ Rejected" }));
       load(key);
     } else {
       const err = await res?.json().catch(() => null);
@@ -145,24 +147,24 @@ export default function AdminPage() {
       headers: { "Content-Type": "application/json", "x-admin-key": key },
       body: JSON.stringify({ id, action: "edit", title: editDraft.title, artist: editDraft.artist, videoId: editDraft.videoId }),
     }).catch(() => null);
-    if (res?.ok) { setEditingId(null); setActionStatus((s) => ({ ...s, [id]: "? Updated" })); load(key); }
+    if (res?.ok) { setEditingId(null); setActionStatus((s) => ({ ...s, [id]: "✓ Updated" })); load(key); }
     else { const err = await res?.json().catch(() => null); setActionStatus((s) => ({ ...s, [id]: err?.error ?? "Failed" })); }
   }
 
   async function autoFillEdit(id: string) {
-    setActionStatus((s) => ({ ...s, [id]: "Searching YouTube�" }));
+    setActionStatus((s) => ({ ...s, [id]: "Searching YouTube…" }));
     const res = await fetch("/api/admin/fetch-video-id", {
       method: "POST",
       headers: { "Content-Type": "application/json", "x-admin-key": key },
       body: JSON.stringify({ title: editDraft.title, artist: editDraft.artist }),
     }).catch(() => null);
-    if (!res?.ok) { setActionStatus((s) => ({ ...s, [id]: "? Search failed" })); return; }
+    if (!res?.ok) { setActionStatus((s) => ({ ...s, [id]: "✗ Search failed" })); return;}
     const { videoId, title: officialTitle, channelTitle: officialArtist } = await res.json();
     if (videoId) {
       setEditDraft((d) => ({ ...d, videoId, ...(officialTitle && { title: officialTitle }), ...(officialArtist && { artist: officialArtist }) }));
-      setActionStatus((s) => ({ ...s, [id]: "? Verify the preview below" }));
+      setActionStatus((s) => ({ ...s, [id]: "✓ Verify the preview below" }));
     } else {
-      setActionStatus((s) => ({ ...s, [id]: "? Not found on YouTube" }));
+      setActionStatus((s) => ({ ...s, [id]: "✗ Not found on YouTube" }));
     }
   }
 
@@ -170,7 +172,7 @@ export default function AdminPage() {
     return (
       <main className="flex min-h-dvh items-center justify-center bg-[#0d0c0a] p-6" style={{ paddingTop: "max(1.5rem, env(safe-area-inset-top))" }}>
         <form onSubmit={(e) => { e.preventDefault(); load(key); }} className="w-full max-w-xs space-y-4">
-          <div className="mb-2 text-2xl">?</div>
+          <div className="mb-2 text-2xl">☕</div>
           <h1 className="text-xl font-semibold text-white">Chayakada Admin</h1>
           <input
             type="password" value={key} onChange={(e) => setKey(e.target.value)}
@@ -210,7 +212,7 @@ export default function AdminPage() {
         </div>
         <button onClick={() => section === "requests" ? load(key) : loadSongs(key)}
           className="rounded-lg border border-white/10 bg-white/5 px-3 py-1.5 text-sm text-white/60 transition active:bg-white/15">
-          ? Refresh
+          ↻ Refresh
         </button>
       </div>
 
@@ -219,37 +221,60 @@ export default function AdminPage() {
         {/* -- SONGS SECTION ------------------------------------------- */}
         {section === "songs" && (
           <div className="space-y-4">
-            {songsLoading && <p className="text-sm text-white/50">Loading�</p>}
-            {!songsLoading && songs?.map((st) => (
-              <div key={st.id} className="rounded-xl border border-white/10 bg-white/5 p-4">
-                <h2 className="mb-3 text-sm font-semibold">{st.emoji} {st.name}</h2>
-                {st.playlists.map((pl) => (
-                  <div key={pl.id}>
-                    <p className="mb-2 text-xs text-white/40">
-                      {pl.staticCount} built-in songs{pl.extraTracks.length > 0 && ` � ${pl.extraTracks.length} added via requests`}
-                    </p>
-                    {pl.extraTracks.length === 0 && <p className="text-xs italic text-white/25">No extra songs yet.</p>}
-                    <div className="space-y-1">
-                      {pl.extraTracks.map((t) => (
-                        <div key={t.id} className="flex items-center justify-between gap-3 rounded-lg border border-white/8 bg-white/[0.03] px-3 py-2">
-                          <div className="min-w-0">
-                            <p className="truncate text-sm">{t.title}</p>
-                            {t.artist && <p className="truncate text-xs text-white/45">{t.artist}</p>}
-                          </div>
-                          <div className="flex shrink-0 items-center gap-2">
-                            {deleteStatus[t.id] && <span className="text-xs text-white/40">{deleteStatus[t.id]}</span>}
-                            <button onClick={() => deleteTrack(pl.id, t.id)}
-                              className="rounded-md border border-red-500/20 bg-red-500/10 px-2 py-1 text-[11px] text-red-400 transition hover:bg-red-500/20">
-                              Remove
-                            </button>
-                          </div>
+            {songsLoading && <p className="text-sm text-white/50">Loading…</p>}
+            {!songsLoading && songs?.map((st) => {
+              const builtInTracks = STATIONS.find((s) => s.id === st.id)?.playlists.flatMap((pl) => pl.tracks) ?? [];
+              const expanded = !!expandedStations[st.id];
+              return (
+                <div key={st.id} className="rounded-xl border border-white/10 bg-white/5 p-4">
+                  <h2 className="mb-3 text-sm font-semibold">{st.emoji} {st.name}</h2>
+                  {st.playlists.map((pl) => (
+                    <div key={pl.id} className="space-y-2">
+                      <button type="button"
+                        onClick={() => setExpandedStations((s) => ({ ...s, [st.id]: !s[st.id] }))}
+                        className="flex w-full items-center justify-between rounded-lg border border-white/8 bg-white/[0.03] px-3 py-2 text-left">
+                        <span className="text-xs text-white/50">{pl.staticCount} built-in songs</span>
+                        <span className="text-[10px] text-white/30">{expanded ? "▲ hide" : "▼ show"}</span>
+                      </button>
+                      {expanded && (
+                        <div className="max-h-64 space-y-1 overflow-y-auto">
+                          {builtInTracks.map((t) => (
+                            <div key={t.id} className="flex items-center gap-3 rounded-lg border border-white/8 bg-white/[0.03] px-3 py-2">
+                              <div className="min-w-0 flex-1">
+                                <p className="truncate text-sm">{t.title}</p>
+                                {t.artist && <p className="truncate text-xs text-white/45">{t.artist}</p>}
+                              </div>
+                              <span className="shrink-0 text-[10px] text-white/20">built-in</span>
+                            </div>
+                          ))}
                         </div>
-                      ))}
+                      )}
+                      {pl.extraTracks.length > 0 && (
+                        <p className="text-xs text-white/40">{pl.extraTracks.length} added via requests</p>
+                      )}
+                      {pl.extraTracks.length === 0 && <p className="text-xs italic text-white/25">No extra songs yet.</p>}
+                      <div className="space-y-1">
+                        {(pl.extraTracks as ExtraTrack[]).map((t) => (
+                          <div key={t.id} className="flex items-center justify-between gap-3 rounded-lg border border-white/8 bg-white/[0.03] px-3 py-2">
+                            <div className="min-w-0">
+                              <p className="truncate text-sm">{t.title}</p>
+                              {t.artist && <p className="truncate text-xs text-white/45">{t.artist}</p>}
+                            </div>
+                            <div className="flex shrink-0 items-center gap-2">
+                              {deleteStatus[t.id] && <span className="text-xs text-white/40">{deleteStatus[t.id]}</span>}
+                              <button onClick={() => deleteTrack(pl.id, t.id)}
+                                className="rounded-md border border-red-500/20 bg-red-500/10 px-2 py-1 text-[11px] text-red-400 transition hover:bg-red-500/20">
+                                Remove
+                              </button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
                     </div>
-                  </div>
-                ))}
-              </div>
-            ))}
+                  ))}
+                </div>
+              );
+            })}
           </div>
         )}
 
@@ -282,7 +307,7 @@ export default function AdminPage() {
               </div>
             </div>
 
-            {loading && <p className="text-sm text-white/50">Loading�</p>}
+            {loading && <p className="text-sm text-white/50">Loading…</p>}
             {!loading && pending.length === 0 && (
               <p className="rounded-xl border border-white/10 bg-white/5 p-4 text-sm text-white/50">No pending requests.</p>
             )}
@@ -304,14 +329,14 @@ export default function AdminPage() {
                     <p className="mt-1 text-[11px] text-white/25">{new Date(req.timestamp).toLocaleString()}</p>
                     {dupes.length > 0 && (
                       <div className="mt-2 rounded-lg border border-amber-500/25 bg-amber-500/10 px-3 py-2">
-                        <p className="text-[11px] font-semibold text-amber-400">? Already in the list</p>
+                        <p className="text-[11px] font-semibold text-amber-400">⚠ Already in the list</p>
                         {dupes.map((d, i) => <p key={i} className="text-[11px] text-amber-300/70">{d}</p>)}
                       </div>
                     )}
                     <div className="mt-3 flex flex-col gap-2">
                       <div className="flex gap-2">
                         <input type="text" value={f.videoId} onChange={(e) => setField(req.id, { videoId: e.target.value })} placeholder="YouTube Video ID or URL" className="flex-1 rounded-lg border border-white/10 bg-white/5 px-3 py-1.5 text-xs text-white placeholder-white/25 outline-none" />
-                        <button onClick={() => autoFill(req.id, req.title, req.artist)} className="shrink-0 rounded-lg border border-white/10 bg-white/5 px-3 py-1.5 text-xs text-amber-400 transition hover:bg-white/10">?? Auto-fill</button>
+                        <button onClick={() => autoFill(req.id, req.title, req.artist)} className="shrink-0 rounded-lg border border-white/10 bg-white/5 px-3 py-1.5 text-xs text-amber-400 transition hover:bg-white/10">🔍 Auto-fill</button>
                       </div>
                       {validEmbed && (
                         <>
@@ -347,7 +372,7 @@ export default function AdminPage() {
                           <div className="flex flex-col gap-2">
                             <div className="flex gap-2">
                               <input type="text" value={editDraft.videoId} onChange={(e) => setEditDraft((d) => ({ ...d, videoId: e.target.value }))} placeholder="YouTube Video ID or URL" className="flex-1 rounded-lg border border-white/10 bg-white/5 px-3 py-1.5 text-xs text-white placeholder-white/25 outline-none" />
-                              <button onClick={() => autoFillEdit(req.id)} className="shrink-0 rounded-lg border border-white/10 bg-white/5 px-3 py-1.5 text-xs text-amber-400 transition hover:bg-white/10">?? Auto-fill</button>
+                              <button onClick={() => autoFillEdit(req.id)} className="shrink-0 rounded-lg border border-white/10 bg-white/5 px-3 py-1.5 text-xs text-amber-400 transition hover:bg-white/10">🔍 Auto-fill</button>
                             </div>
                             {validEmbed && (
                               <div className="overflow-hidden rounded-lg" style={{ aspectRatio: "16/9" }}>
@@ -373,7 +398,7 @@ export default function AdminPage() {
                                 <button onClick={() => { setEditingId(req.id); setEditDraft({ title: req.title, artist: req.artist ?? "", videoId: req.videoId ?? "" }); }} className="text-xs text-white/30 transition hover:text-white/70">Edit</button>
                               )}
                               <span className={`text-xs font-medium ${req.status === "approved" ? "text-green-400" : "text-red-400"}`}>
-                                {req.status === "approved" ? "? Approved" : "? Rejected"}
+                                {req.status === "approved" ? "✓ Approved" : "✗ Rejected"}
                               </span>
                             </div>
                           </div>

@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { redis } from "@/lib/redis";
 import { STATIONS } from "@/lib/stations";
 
+const LEGACY_CHAYAKADA_IDS = ["golden-voices", "melody-makers", "the-nineties"];
+
 function authOk(req: Request) {
   return req.headers.get("x-admin-key") === process.env.ADMIN_KEY;
 }
@@ -12,28 +14,31 @@ export async function GET(req: Request) {
   const allPlaylists = STATIONS.flatMap((s) =>
     s.playlists.map((pl) => ({ stationId: s.id, playlistId: pl.id }))
   );
+  const allIds = [...allPlaylists.map((p) => p.playlistId), ...LEGACY_CHAYAKADA_IDS];
 
   const pipeline = redis.pipeline();
-  for (const { playlistId } of allPlaylists) pipeline.lrange(`ck:extra:${playlistId}`, 0, -1);
+  for (const id of allIds) pipeline.lrange(`ck:extra:${id}`, 0, -1);
   const results = await pipeline.exec();
 
-  const extraByPlaylist: Record<string, unknown[]> = {};
-  allPlaylists.forEach(({ playlistId }, i) => {
-    const items = (results[i] as string[] | null) ?? [];
-    extraByPlaylist[playlistId] = items
-      .map((s) => { try { return typeof s === "string" ? JSON.parse(s) : s; } catch { return null; } })
-      .filter(Boolean);
+  const parse = (s: unknown) => { try { return typeof s === "string" ? JSON.parse(s) : s; } catch { return null; } };
+  const rawByKey: Record<string, unknown[]> = {};
+  allIds.forEach((id, i) => {
+    rawByKey[id] = ((results[i] as string[] | null) ?? []).map(parse).filter(Boolean);
   });
 
   const stations = STATIONS.map((s) => ({
     id: s.id,
     name: s.englishName,
     emoji: s.emoji,
-    playlists: s.playlists.map((pl) => ({
-      id: pl.id,
-      staticCount: pl.tracks.length,
-      extraTracks: extraByPlaylist[pl.id] ?? [],
-    })),
+    playlists: s.playlists.map((pl) => {
+      let extraTracks = [...(rawByKey[pl.id] ?? [])];
+      if (pl.id === "chayakada") {
+        for (const legacyId of LEGACY_CHAYAKADA_IDS) {
+          extraTracks = [...extraTracks, ...(rawByKey[legacyId] ?? [])];
+        }
+      }
+      return { id: pl.id, staticCount: pl.tracks.length, extraTracks };
+    }),
   }));
 
   return NextResponse.json(stations);
